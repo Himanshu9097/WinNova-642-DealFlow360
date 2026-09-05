@@ -3,6 +3,7 @@ const router = express.Router();
 const Deal = require('../models/Deal');
 const Requirement = require('../models/Requirement');
 const Quotation = require('../models/Quotation');
+const Customer = require('../models/Customer');
 const { requireAuth } = require('../../middleware/authMiddleware');
 
 router.use(requireAuth);
@@ -24,6 +25,68 @@ router.get('/:id', async (req, res) => {
   const requirements = await Requirement.find({ dealId: deal._id, companyId: req.companyId });
   const quotations = await Quotation.find({ dealId: deal._id, companyId: req.companyId });
   res.json({ deal, requirements, quotations });
+});
+
+router.put('/:id', async (req, res) => {
+  const { stage } = req.body;
+  const deal = await Deal.findOneAndUpdate(
+    { _id: req.params.id, companyId: req.companyId },
+    { stage },
+    { new: true }
+  );
+  
+  if (stage === 'Closed Won') {
+    // HOOK: Auto-generate Fulfillment & Invoice
+    const Fulfillment = require('../models/Fulfillment');
+    const Invoice = require('../models/Invoice');
+    const Quotation = require('../models/Quotation');
+    
+    const quote = await Quotation.findOne({ dealId: deal._id, companyId: req.companyId }).sort({ createdAt: -1 });
+    
+    if (quote) {
+      // 1. Generate Fulfillment
+      const fulfillment = await Fulfillment.create({
+        companyId: req.companyId,
+        customerId: deal.customerId,
+        dealId: deal._id,
+        quotationId: quote._id,
+        orderNumber: `SO-${Date.now().toString().slice(-6)}`,
+        status: 'Ready',
+        lines: quote.lines.map(l => ({
+          productId: l.productId,
+          name: `Product ${l.productId}`, // We'll mock this for now since quote lines don't populate product name natively
+          requiredQuantity: l.quantity
+        })),
+        deliveryTimeline: '60 days'
+      });
+      
+      // 2. Generate 50% Advance Invoice
+      await Invoice.create({
+        companyId: req.companyId,
+        invoiceNumber: `INV-${Date.now().toString().slice(-6)}`,
+        customerId: deal.customerId,
+        dealId: deal._id,
+        fulfillmentId: fulfillment._id,
+        issueDate: new Date(),
+        dueDate: new Date(Date.now() + 15 * 86400000), // Net 15
+        paymentTerms: 'Net 15',
+        status: 'Pending',
+        items: [{
+          description: '50% Advance Payment for Order ' + fulfillment.orderNumber,
+          quantity: 1,
+          unitPrice: quote.totals.net * 0.5,
+          total: quote.totals.net * 0.5
+        }],
+        subtotal: quote.totals.net * 0.5,
+        taxRate: 0,
+        taxAmount: 0,
+        total: quote.totals.net * 0.5,
+        balanceDue: quote.totals.net * 0.5
+      });
+    }
+  }
+  
+  res.json(deal);
 });
 
 module.exports = router;

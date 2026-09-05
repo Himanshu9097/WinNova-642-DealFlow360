@@ -18,7 +18,7 @@ export const AuthProvider = ({ children }) => {
         return;
       }
       try {
-        const res = await fetch('http://localhost:5006/api/auth/me', {
+        const res = await fetch('http://127.0.0.1:5006/api/auth/me', {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (res.ok) {
@@ -38,7 +38,7 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const login = async (email, password) => {
-    const res = await fetch('http://localhost:5006/api/auth/login', {
+    const res = await fetch('http://127.0.0.1:5006/api/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password })
@@ -47,7 +47,7 @@ export const AuthProvider = ({ children }) => {
     if (res.ok) {
       localStorage.setItem('token', data.token);
       // refetch to get company data
-      const meRes = await fetch('http://localhost:5006/api/auth/me', {
+      const meRes = await fetch('http://127.0.0.1:5006/api/auth/me', {
         headers: { Authorization: `Bearer ${data.token}` }
       });
       const meData = await meRes.json();

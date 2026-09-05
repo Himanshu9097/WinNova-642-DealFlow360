@@ -19,7 +19,7 @@ export default function Register() {
     }
     
     try {
-      const res = await fetch('http://localhost:5006/api/auth/register-company', {
+      const res = await fetch('http://127.0.0.1:5006/api/auth/register-company', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)

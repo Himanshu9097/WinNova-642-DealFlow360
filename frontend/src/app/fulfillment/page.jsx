@@ -12,7 +12,7 @@ export default function FulfillmentPage() {
       try {
         const token = localStorage.getItem('token');
         if (!token) return;
-        const res = await fetch('http://localhost:5006/api/fulfillment', {
+        const res = await fetch('http://127.0.0.1:5006/api/fulfillment', {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (res.ok) {

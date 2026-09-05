@@ -13,11 +13,11 @@ export default function CustomerPortal() {
 
   useEffect(() => {
     // Mock token resolution by simply fetching all deals and grabbing the seeded one.
-    fetch(`http://localhost:5006/api/deals`)
+    fetch(`http://127.0.0.1:5006/api/deals`)
       .then(res => res.json())
       .then(json => {
         const deal = json[0];
-        fetch(`http://localhost:5006/api/deals/${deal._id}`)
+        fetch(`http://127.0.0.1:5006/api/deals/${deal._id}`)
           .then(res => res.json())
           .then(dealData => {
             setData(dealData);

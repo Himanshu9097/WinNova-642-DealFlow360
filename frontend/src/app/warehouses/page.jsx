@@ -23,9 +23,9 @@ export default function WarehousesPage() {
       const headers = { Authorization: `Bearer ${token}` };
 
       const [whRes, invRes, prodRes] = await Promise.all([
-        fetch('http://localhost:5006/api/inventory/warehouses', { headers }),
-        fetch('http://localhost:5006/api/inventory/all', { headers }),
-        fetch('http://localhost:5006/api/inventory/products', { headers })
+        fetch('http://127.0.0.1:5006/api/inventory/warehouses', { headers }),
+        fetch('http://127.0.0.1:5006/api/inventory/all', { headers }),
+        fetch('http://127.0.0.1:5006/api/inventory/products', { headers })
       ]);
 
       if (whRes.ok) setWarehouses(await whRes.json());
@@ -46,7 +46,7 @@ export default function WarehousesPage() {
     e.preventDefault();
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch('http://localhost:5006/api/inventory/warehouses', {
+      const res = await fetch('http://127.0.0.1:5006/api/inventory/warehouses', {
         method: 'POST',
         headers: { 
           Authorization: `Bearer ${token}`,
@@ -68,7 +68,7 @@ export default function WarehousesPage() {
     e.preventDefault();
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch('http://localhost:5006/api/inventory/stock', {
+      const res = await fetch('http://127.0.0.1:5006/api/inventory/stock', {
         method: 'POST',
         headers: { 
           Authorization: `Bearer ${token}`,

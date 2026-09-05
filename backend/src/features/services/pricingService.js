@@ -4,7 +4,7 @@ exports.calculateTotals = (lines) => {
   let costTotal = 0;
   lines.forEach(line => {
     let subtotal = line.quantity * line.unitPrice;
-    let lineDiscount = subtotal * (line.discountPct / 100);
+    let lineDiscount = subtotal * ((line.discountPct || 0) / 100);
     line.lineTotal = subtotal - lineDiscount;
     line.margin = line.lineTotal - (line.cost * line.quantity || 0);
     
