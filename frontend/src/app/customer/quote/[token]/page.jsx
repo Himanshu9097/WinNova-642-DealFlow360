@@ -92,8 +92,8 @@ export default function CustomerPortal() {
                 <tr key={i}>
                   <td>{l.productId}</td>
                   <td className="text-center">{l.quantity}</td>
-                  <td className="text-end">${l.unitPrice}</td>
-                  <td className="text-end fw-bold">${l.lineTotal}</td>
+                  <td className="text-end">₹{l.unitPrice}</td>
+                  <td className="text-end fw-bold">₹{l.lineTotal}</td>
                 </tr>
               ))}
             </tbody>
@@ -104,16 +104,16 @@ export default function CustomerPortal() {
               <div className="p-4 bg-light rounded">
                 <div className="d-flex justify-content-between mb-2">
                   <span className="text-muted">Subtotal</span>
-                  <span>${quote.totals?.gross}</span>
+                  <span>₹{quote.totals?.gross}</span>
                 </div>
                 <div className="d-flex justify-content-between mb-2">
                   <span className="text-muted">Discount</span>
-                  <span className="text-danger">-${quote.totals?.discount}</span>
+                  <span className="text-danger">-₹{quote.totals?.discount}</span>
                 </div>
                 <hr />
                 <div className="d-flex justify-content-between">
                   <span className="fs-4 fw-bold">Total (Net)</span>
-                  <span className="fs-4 fw-bold" style={{color: '#D6536D'}}>${quote.totals?.net}</span>
+                  <span className="fs-4 fw-bold" style={{color: '#D6536D'}}>₹{quote.totals?.net}</span>
                 </div>
               </div>
             </div>

@@ -13,7 +13,7 @@ export default function QuotationIntelligencePanel({ data }) {
         
         <div className="mb-3">
           <label className="text-muted small text-uppercase">Quotation Value</label>
-          <div className="fs-5 fw-bold text-dark">${(data.totalValue || 0).toLocaleString()}</div>
+          <div className="fs-5 fw-bold text-dark">₹{(data.totalValue || 0).toLocaleString()}</div>
         </div>
 
         <div className="mb-3">

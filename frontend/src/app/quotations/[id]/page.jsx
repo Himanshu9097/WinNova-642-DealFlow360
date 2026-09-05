@@ -63,7 +63,7 @@ export default function QuotationDetail() {
               <div className="d-flex gap-4">
                 <div>
                   <div className="text-muted small">Total Value</div>
-                  <div className="fs-5 fw-bold">${(quote.totalValue || 0).toLocaleString()}</div>
+                  <div className="fs-5 fw-bold">₹{(quote.totalValue || 0).toLocaleString()}</div>
                 </div>
                 <div>
                   <div className="text-muted small">Margin / Risk</div>
@@ -150,9 +150,9 @@ export default function QuotationDetail() {
                     <tr key={i}>
                       <td>{line.name}</td>
                       <td>{line.quantity}</td>
-                      <td>${line.unitPrice.toLocaleString()}</td>
+                      <td>₹{line.unitPrice.toLocaleString()}</td>
                       <td>{line.discountPct}%</td>
-                      <td>${line.lineTotal.toLocaleString()}</td>
+                      <td>₹{line.lineTotal.toLocaleString()}</td>
                     </tr>
                   ))}
                   {(!quote.lines || quote.lines.length === 0) && (
@@ -164,16 +164,16 @@ export default function QuotationDetail() {
                 <div style={{width: '300px'}}>
                   <div className="d-flex justify-content-between text-muted mb-1">
                     <span>Subtotal:</span>
-                    <span>${quote.totals?.gross.toLocaleString()}</span>
+                    <span>₹{quote.totals?.gross.toLocaleString()}</span>
                   </div>
                   <div className="d-flex justify-content-between text-muted mb-1">
                     <span>Discount:</span>
-                    <span className="text-danger">-${quote.totals?.discount.toLocaleString()}</span>
+                    <span className="text-danger">-₹{quote.totals?.discount.toLocaleString()}</span>
                   </div>
                   <hr className="my-2"/>
                   <div className="d-flex justify-content-between fs-5 fw-bold">
                     <span>Grand Total:</span>
-                    <span>${quote.totals?.net.toLocaleString()}</span>
+                    <span>₹{quote.totals?.net.toLocaleString()}</span>
                   </div>
                 </div>
               </div>
@@ -246,11 +246,11 @@ export default function QuotationDetail() {
                       <h6>Margin Analysis (Internal)</h6>
                       <div className="d-flex justify-content-between mb-2">
                         <span>Net Revenue:</span>
-                        <span>${quote.totals?.net.toLocaleString()}</span>
+                        <span>₹{quote.totals?.net.toLocaleString()}</span>
                       </div>
                       <div className="d-flex justify-content-between mb-2">
                         <span>Gross Margin:</span>
-                        <span className="text-success">${quote.totals?.margin.toLocaleString()}</span>
+                        <span className="text-success">₹{quote.totals?.margin.toLocaleString()}</span>
                       </div>
                       <div className="d-flex justify-content-between fw-bold">
                         <span>Margin %:</span>

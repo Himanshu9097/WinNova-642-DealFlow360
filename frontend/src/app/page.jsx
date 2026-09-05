@@ -47,7 +47,7 @@ export default function Dashboard() {
               <div className="card-body">
                 <h5 className="card-title">Pipeline Value</h5>
                 <h2 className="card-text">
-                  ${deals.reduce((acc, deal) => acc + (deal.value || 0), 0).toLocaleString()}
+                  ₹{deals.reduce((acc, deal) => acc + (deal.value || 0), 0).toLocaleString()}
                 </h2>
               </div>
             </div>
@@ -100,7 +100,7 @@ export default function Dashboard() {
                         <tr key={deal._id}>
                           <td className="ps-4 fw-medium">{deal.title}</td>
                           <td>{deal.customerId?.name || 'Unknown'}</td>
-                          <td>${(deal.value || 0).toLocaleString()}</td>
+                          <td>₹{(deal.value || 0).toLocaleString()}</td>
                           <td>
                             <span className={`badge ${deal.targetMargin < 15 ? 'bg-danger' : 'bg-success'}`}>
                               {deal.targetMargin}%
