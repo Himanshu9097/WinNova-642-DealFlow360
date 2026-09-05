@@ -114,7 +114,7 @@ export default function AdminUsers() {
                     ) : (
                       users.map(u => (
                         <tr key={u._id}>
-                          <td className="ps-4 fw-medium">{u.name} {user.id === u._id && '(You)'}</td>
+                          <td className="ps-4 fw-medium">{u.name} {user?._id === u._id && '(You)'}</td>
                           <td>{u.email}</td>
                           <td><span className="badge bg-secondary">{u.role.replace('_', ' ')}</span></td>
                           <td><span className={`badge ${u.status === 'ACTIVE' ? 'bg-success' : 'bg-warning'}`}>{u.status}</span></td>

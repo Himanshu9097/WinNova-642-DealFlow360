@@ -36,7 +36,10 @@ export default function Navbar() {
             
             {/* Fulfillment & Billing */}
             {isRole(['COMPANY_ADMIN', 'OPERATIONS']) && (
-              <li className="nav-item"><a className="nav-link" href="/fulfillment">Fulfillment</a></li>
+              <>
+                <li className="nav-item"><a className="nav-link" href="/warehouses">Warehouses</a></li>
+                <li className="nav-item"><a className="nav-link" href="/fulfillment">Fulfillment</a></li>
+              </>
             )}
             {isRole(['COMPANY_ADMIN', 'FINANCE']) && (
               <li className="nav-item"><a className="nav-link" href="/billing">Billing</a></li>
