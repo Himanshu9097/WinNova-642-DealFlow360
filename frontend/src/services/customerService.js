@@ -1,4 +1,4 @@
-import { getAuthHeaders } from '../utils/auth';
+import { getAuthHeaders } from '@/utils/auth';
 
 const API_URL = 'http://127.0.0.1:5006/api';
 

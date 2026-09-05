@@ -4,6 +4,7 @@ const schema = new mongoose.Schema({
   
   sku: String, name: String, description: String,
   basePrice: Number, cost: Number, 
-  billingType: String
+  billingType: String,
+  maxDiscount: { type: Number, default: 0 }
 }, { timestamps: true });
 module.exports = mongoose.model('Product', schema);

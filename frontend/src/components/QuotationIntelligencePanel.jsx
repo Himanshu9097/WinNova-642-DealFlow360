@@ -1,4 +1,3 @@
-'use client';
 
 import React from 'react';
 
@@ -17,24 +16,58 @@ export default function QuotationIntelligencePanel({ data }) {
         </div>
 
         <div className="mb-3">
-          <label className="text-muted small text-uppercase">Discount Governance</label>
-          <div className="d-flex justify-content-between align-items-center">
-            <span>Requested: <strong>{data.discountPct}%</strong></span>
-            <span className="text-muted">Allowed: {data.allowedDiscount}%</span>
+          <div className="d-flex align-items-center gap-1 mb-1">
+            <label className="text-muted small text-uppercase mb-0">Discount Governance</label>
+            <span 
+              title="Discount Governance enforces a maximum discount ceiling on every quotation based on the per-product limits set for each item in this quote. This prevents unauthorized margin erosion and triggers approval workflows when exceeded."
+              style={{cursor: 'help', fontSize: '0.8rem', color: '#17a2b8'}}
+            >ⓘ</span>
           </div>
+          <div className="d-flex justify-content-between align-items-center mb-1">
+            <span>Requested: <strong className={data.discountPct > data.allowedDiscount ? 'text-danger' : 'text-success'}>{data.discountPct}%</strong></span>
+            <span className="text-muted small">Allowed: <strong>{data.allowedDiscount === 100 ? 'N/A' : data.allowedDiscount + '%'}</strong></span>
+          </div>
+          {/* Show breakdown of where the limit comes from */}
+          <div className="small text-muted mb-1" style={{fontSize:'0.72rem'}}>
+            {data.productLimits && data.productLimits.length > 0 && data.productLimits.map((p, i) => (
+              <span key={i} className="d-block">
+                📦 {p.name}: {p.maxDiscount}% max
+              </span>
+            ))}
+          </div>
+          {/* Visual bar */}
+          {data.discountPct > 0 && (
+            <div className="progress mb-1" style={{height: '5px'}}>
+              <div
+                className={`progress-bar bg-${data.discountPct > data.allowedDiscount ? 'danger' : data.discountPct > data.allowedDiscount * 0.8 ? 'warning' : 'success'}`}
+                style={{width: `${Math.min((data.discountPct / data.allowedDiscount) * 100, 100)}%`, transition: 'width 0.3s'}}
+              />
+            </div>
+          )}
           {isDiscountHigh && (
             <div className="alert alert-danger mt-2 mb-0 py-2 small">
               <i className="fa fa-exclamation-triangle me-1"></i> Discount Policy Exceeded
               <br/>
-              <span className="text-muted">Manager approval required</span>
+              <span className="text-muted">Manager approval required to save</span>
+            </div>
+          )}
+          {data.hasFulfillmentRisk && (
+            <div className="alert alert-warning mt-2 mb-0 py-2 small">
+              <i className="fa fa-box-open me-1"></i> Fulfillment Risk
+              <br/>
+              <span className="text-muted">Insufficient stock for requested quantities</span>
             </div>
           )}
         </div>
 
         <div className="mb-3">
           <label className="text-muted small text-uppercase">Margin (Internal Only)</label>
-          <div className="fs-5 fw-bold text-success">{data.marginPct}%</div>
+          <div className={`fs-5 fw-bold text-${data.marginPct > 20 ? 'success' : data.marginPct > 0 ? 'warning' : 'danger'}`}>
+            {data.marginPct > 0 ? `${data.marginPct}%` : data.marginPct === 0 ? 'No cost data' : `${data.marginPct}%`}
+          </div>
+          <div className="small text-muted">Calculated from product cost vs net price</div>
         </div>
+
 
         <div className="mb-3">
           <label className="text-muted small text-uppercase">Risk Score</label>

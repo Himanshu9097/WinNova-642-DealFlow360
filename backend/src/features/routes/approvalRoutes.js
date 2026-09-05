@@ -35,8 +35,64 @@ router.post('/:id/action', requireRole(['COMPANY_ADMIN', 'SALES_MANAGER', 'FINAN
     if (approval.quotationId) {
       const quote = await Quotation.findOne({ _id: approval.quotationId });
       if (quote) {
-        quote.status = action === 'APPROVE' ? 'Approved' : 'Rejected';
+        if (approval.type === 'Customer Counter Offer') {
+          if (action === 'APPROVE') {
+            quote.status = 'Accepted';
+            if (quote.proposedDiscountPct) {
+              const newDiscount = (quote.totals.gross * quote.proposedDiscountPct) / 100;
+              quote.totals.discount = newDiscount;
+              quote.totals.net = quote.totals.gross - newDiscount;
+            }
+          } else {
+            quote.status = 'Rejected by Seller';
+          }
+        } else {
+          quote.status = action === 'APPROVE' ? 'Approved' : 'Rejected';
+        }
+        
         await quote.save();
+        
+        if (action === 'APPROVE') {
+          // 1. Deduct Inventory
+          const Inventory = require('../models/Inventory');
+          for (const line of quote.lines) {
+            if (!line.productId) continue;
+            let requiredQty = line.quantity;
+            const inventories = await Inventory.find({ companyId: req.companyId, productId: line.productId, availableStock: { $gt: 0 } });
+            
+            for (const inv of inventories) {
+              if (requiredQty <= 0) break;
+              const deduct = Math.min(inv.availableStock, requiredQty);
+              inv.availableStock -= deduct;
+              requiredQty -= deduct;
+              await inv.save();
+            }
+          }
+          
+          // 2. Generate Invoice
+          const Invoice = require('../models/Invoice');
+          const invoice = new Invoice({
+            companyId: req.companyId,
+            invoiceNumber: `INV-${Date.now().toString().slice(-6)}`,
+            customerId: quote.customerId,
+            dealId: quote.dealId,
+            issueDate: new Date(),
+            dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days net
+            status: 'Pending',
+            items: quote.lines.map(l => ({
+              description: l.name || 'Product',
+              quantity: l.quantity,
+              unitPrice: l.unitPrice,
+              total: l.lineTotal
+            })),
+            subtotal: quote.totals?.gross || 0,
+            taxRate: 18,
+            taxAmount: ((quote.totals?.net || 0) * 0.18),
+            total: (quote.totals?.net || 0) * 1.18,
+            balanceDue: (quote.totals?.net || 0) * 1.18
+          });
+          await invoice.save();
+        }
       }
     }
     

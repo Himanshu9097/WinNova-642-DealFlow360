@@ -10,6 +10,10 @@ const schema = new mongoose.Schema({
   approvalStatus: { type: String, default: 'Not Required' },
   negotiationStatus: String,
   fulfillmentStatus: String,
-  billingStatus: String
+  billingStatus: String,
+  products: [{
+    productId: { type: mongoose.Schema.Types.ObjectId, ref: 'Product' },
+    quantity: Number
+  }]
 }, { timestamps: true });
 module.exports = mongoose.model('Deal', schema);

@@ -4,7 +4,7 @@ const Deal = require('../models/Deal');
 const Requirement = require('../models/Requirement');
 const Quotation = require('../models/Quotation');
 const Customer = require('../models/Customer');
-const { requireAuth } = require('../../middleware/authMiddleware');
+const { requireAuth, requireRole } = require('../../middleware/authMiddleware');
 
 router.use(requireAuth);
 
@@ -13,9 +13,32 @@ router.get('/', async (req, res) => {
   res.json(deals);
 });
 
-router.post('/', async (req, res) => {
-  const deal = await Deal.create({ ...req.body, companyId: req.companyId });
-  res.json(deal);
+router.post('/', requireRole(['COMPANY_ADMIN', 'SALES_MANAGER', 'SALES_REP']), async (req, res) => {
+  try {
+    const { productLines, ...dealData } = req.body;
+
+    // Validate stock availability across all warehouses before allowing deal creation
+    if (productLines && productLines.length > 0) {
+      const Inventory = require('../models/Inventory');
+      for (const line of productLines) {
+        if (!line.productId) continue;
+        const stockRecords = await Inventory.find({ companyId: req.companyId, productId: line.productId });
+        const totalAvailable = stockRecords.reduce((sum, r) => sum + (r.availableStock || 0), 0);
+        if (totalAvailable < line.quantity) {
+          return res.status(400).json({ 
+            error: `Insufficient stock for product ${line.productId}. Available: ${totalAvailable}, Requested: ${line.quantity}` 
+          });
+        }
+      }
+    }
+
+    const deal = await Deal.create({ ...dealData, products: productLines, companyId: req.companyId });
+    // Note: Warehouse allocation & inventory deduction is handled by Operations team via Fulfillment
+    res.json(deal);
+  } catch (err) {
+    console.error('Create deal error:', err);
+    res.status(500).json({ error: err.message });
+  }
 });
 
 router.get('/:id', async (req, res) => {
@@ -27,7 +50,7 @@ router.get('/:id', async (req, res) => {
   res.json({ deal, requirements, quotations });
 });
 
-router.put('/:id', async (req, res) => {
+router.put('/:id', requireRole(['COMPANY_ADMIN', 'SALES_MANAGER', 'SALES_REP']), async (req, res) => {
   const { stage } = req.body;
   const deal = await Deal.findOneAndUpdate(
     { _id: req.params.id, companyId: req.companyId },
@@ -87,6 +110,24 @@ router.put('/:id', async (req, res) => {
   }
   
   res.json(deal);
+});
+
+router.delete('/:id', requireRole(['COMPANY_ADMIN', 'SALES_MANAGER']), async (req, res) => {
+  try {
+    const deal = await Deal.findOneAndDelete({ _id: req.params.id, companyId: req.companyId });
+    if (!deal) return res.status(404).json({ error: 'Deal not found' });
+    
+    // Optionally cleanup related records like quotations and requirements
+    const Requirement = require('../models/Requirement');
+    const Quotation = require('../models/Quotation');
+    await Requirement.deleteMany({ dealId: req.params.id, companyId: req.companyId });
+    await Quotation.deleteMany({ dealId: req.params.id, companyId: req.companyId });
+    
+    res.json({ message: 'Deal deleted successfully' });
+  } catch (err) {
+    console.error('Delete deal error:', err);
+    res.status(500).json({ error: err.message });
+  }
 });
 
 module.exports = router;

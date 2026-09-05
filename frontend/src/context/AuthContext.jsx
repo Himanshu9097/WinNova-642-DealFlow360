@@ -1,6 +1,5 @@
-'use client';
 import { createContext, useContext, useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useNavigate } from 'react-router-dom';
 
 const AuthContext = createContext({});
 
@@ -8,7 +7,7 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [company, setCompany] = useState(null);
   const [loading, setLoading] = useState(true);
-  const router = useRouter();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchMe = async () => {
@@ -53,7 +52,7 @@ export const AuthProvider = ({ children }) => {
       const meData = await meRes.json();
       setUser(meData.user);
       setCompany(meData.company);
-      router.push('/');
+      navigate('/');
       return { success: true };
     }
     return { success: false, error: data.error };
@@ -63,7 +62,7 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('token');
     setUser(null);
     setCompany(null);
-    router.push('/login');
+    navigate('/login');
   };
 
   return (
