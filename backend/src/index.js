@@ -17,6 +17,8 @@ app.use('/api/auth', require('./features/routes/authRoutes'));
 app.use('/api/users', require('./features/routes/userRoutes'));
 app.use('/api/deals', require('./features/routes/dealRoutes'));
 app.use('/api/quotations', require('./features/routes/quoteRoutes'));
+app.use('/api/inventory', require('./features/routes/inventoryRoutes'));
+app.use('/api/fulfillment', require('./features/routes/fulfillmentRoutes'));
 
 // Basic Route
 app.get('/', (req, res) => {
