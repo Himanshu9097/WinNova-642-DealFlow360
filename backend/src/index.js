@@ -13,6 +13,8 @@ app.use(cors({ origin: process.env.CLIENT_URL || 'http://localhost:5175' }));
 app.use(express.json());
 
 // Routes
+app.use('/api/auth', require('./features/routes/authRoutes'));
+app.use('/api/users', require('./features/routes/userRoutes'));
 app.use('/api/deals', require('./features/routes/dealRoutes'));
 app.use('/api/quotations', require('./features/routes/quoteRoutes'));
 
