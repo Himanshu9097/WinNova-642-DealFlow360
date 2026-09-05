@@ -103,18 +103,18 @@ export default function DealDetail() {
                         <tr key={i}>
                           <td>Product {l.productId}</td>
                           <td>{l.quantity}</td>
-                          <td>${l.unitPrice}</td>
+                          <td>₹{l.unitPrice}</td>
                           <td>{l.discountPct}%</td>
-                          <td>${l.lineTotal}</td>
+                          <td>₹{l.lineTotal}</td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
                   <hr />
                   <div className="d-flex justify-content-between">
-                    <h5>Gross: ${quote.totals?.gross}</h5>
-                    <h5>Discount: ${quote.totals?.discount}</h5>
-                    <h5 className="text-success">Net: ${quote.totals?.net}</h5>
+                    <h5>Gross: ₹{quote.totals?.gross}</h5>
+                    <h5>Discount: ₹{quote.totals?.discount}</h5>
+                    <h5 className="text-success">Net: ₹{quote.totals?.net}</h5>
                   </div>
                 </div>
               ) : (
@@ -143,7 +143,7 @@ export default function DealDetail() {
                 <label className="text-muted small text-uppercase">Margin Analysis</label>
                 <div className="d-flex justify-content-between align-items-center">
                   <span className="fs-5">Est. Margin</span>
-                  <span className="fs-5 fw-bold text-success">${deal.estimatedMargin.toLocaleString()}</span>
+                  <span className="fs-5 fw-bold text-success">₹{deal.estimatedMargin.toLocaleString()}</span>
                 </div>
               </div>
               <div className="mb-3">

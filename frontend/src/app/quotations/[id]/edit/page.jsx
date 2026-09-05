@@ -211,11 +211,11 @@ export default function EditQuotation() {
                       </td>
                       <td>
                         <div className="input-group input-group-sm">
-                          <span className="input-group-text">$</span>
+                          <span className="input-group-text">₹</span>
                           <input type="number" className="form-control" value={line.unitPrice} onChange={e => updateLine(index, 'unitPrice', Number(e.target.value))} />
                         </div>
                       </td>
-                      <td>${(line.quantity * line.unitPrice).toLocaleString()}</td>
+                      <td>₹{(line.quantity * line.unitPrice).toLocaleString()}</td>
                       <td>
                         <button className="btn btn-sm btn-outline-danger" onClick={() => removeLine(index)}><i className="fa fa-trash"></i></button>
                       </td>
@@ -231,12 +231,12 @@ export default function EditQuotation() {
                   </div>
                   <div className="d-flex justify-content-between mb-2">
                     <span className="text-muted">Discount Value:</span>
-                    <span className="text-danger">-${totals.discount.toLocaleString()}</span>
+                    <span className="text-danger">-₹{totals.discount.toLocaleString()}</span>
                   </div>
                   <hr/>
                   <div className="d-flex justify-content-between">
                     <strong className="fs-5">Grand Total:</strong>
-                    <strong className="fs-5">${totals.net.toLocaleString()}</strong>
+                    <strong className="fs-5">₹{totals.net.toLocaleString()}</strong>
                   </div>
                 </div>
               </div>

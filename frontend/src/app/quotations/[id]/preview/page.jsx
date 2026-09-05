@@ -92,8 +92,8 @@ export default function QuotationPreview() {
                   <td className="text-center">{idx + 1}</td>
                   <td>{line.name}</td>
                   <td className="text-center">{line.quantity}</td>
-                  <td className="text-end">${line.unitPrice.toLocaleString()}</td>
-                  <td className="text-end">${line.lineTotal.toLocaleString()}</td>
+                  <td className="text-end">₹{line.unitPrice.toLocaleString()}</td>
+                  <td className="text-end">₹{line.lineTotal.toLocaleString()}</td>
                 </tr>
               ))}
               {(!quote.lines || quote.lines.length === 0) && (
@@ -114,15 +114,15 @@ export default function QuotationPreview() {
                 <tbody>
                   <tr>
                     <td className="text-muted w-50">Subtotal:</td>
-                    <td className="w-50">${quote.totals?.gross.toLocaleString()}</td>
+                    <td className="w-50">₹{quote.totals?.gross.toLocaleString()}</td>
                   </tr>
                   <tr>
                     <td className="text-muted">Discount:</td>
-                    <td className="text-danger">-${quote.totals?.discount.toLocaleString()}</td>
+                    <td className="text-danger">-₹{quote.totals?.discount.toLocaleString()}</td>
                   </tr>
                   <tr className="border-top border-dark">
                     <td className="fw-bold pt-2 fs-5">Grand Total:</td>
-                    <td className="fw-bold pt-2 fs-5">${quote.totals?.net.toLocaleString()}</td>
+                    <td className="fw-bold pt-2 fs-5">₹{quote.totals?.net.toLocaleString()}</td>
                   </tr>
                 </tbody>
               </table>
