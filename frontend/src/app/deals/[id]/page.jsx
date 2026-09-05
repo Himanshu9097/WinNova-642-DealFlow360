@@ -1,10 +1,14 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
+import ProtectedRoute from '../../../components/ProtectedRoute';
+import { getDeal } from '../../../services/dealService';
+import { getQuotations } from '../../../services/quotationService';
 
 export default function DealDetail() {
   const params = useParams();
+  const router = useRouter();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -13,13 +17,23 @@ export default function DealDetail() {
 
   useEffect(() => {
     if (params.id) {
-      fetch(`http://localhost:5006/api/deals/${params.id}`)
-        .then(res => res.json())
-        .then(json => {
-          setData(json);
-          setLoading(false);
-        })
-        .catch(console.error);
+      Promise.all([
+        getDeal(params.id),
+        getQuotations()
+      ]).then(([dealData, allQuotes]) => {
+        if (dealData) {
+          const dealQuotes = allQuotes.filter(q => q.dealId?._id === dealData.deal._id);
+          setData({
+            deal: dealData.deal,
+            requirements: dealData.requirements,
+            quotations: dealQuotes
+          });
+        }
+        setLoading(false);
+      }).catch(err => {
+        console.error(err);
+        setLoading(false);
+      });
     }
   }, [params.id]);
 
@@ -118,10 +132,17 @@ export default function DealDetail() {
                   </div>
                 </div>
               ) : (
-                <div className="alert alert-info">
-                  No quotation has been built yet.
-                  <br /><br />
-                  <button className="btn btn-primary btn-sm">Build Commercial Quote</button>
+                <div className="alert alert-info border-0 shadow-sm">
+                  <div className="d-flex mb-3">
+                    <i className="fa fa-info-circle fs-4 me-3 text-info"></i>
+                    <div>
+                      <strong>No quotation built yet</strong>
+                      <div className="small">Create a smart quotation linked to this deal&apos;s requirements.</div>
+                    </div>
+                  </div>
+                  <button className="btn btn-primary btn-sm w-100" onClick={() => router.push(`/quotations/create?dealId=${deal._id}`)}>
+                    Build Commercial Quote
+                  </button>
                 </div>
               )}
             </div>
@@ -133,54 +154,98 @@ export default function DealDetail() {
         <div className="col-md-5">
           <div className="card shadow-sm border-0 mb-4" style={{borderTop: '4px solid #17a2b8'}}>
             <div className="card-body">
-              <h5 className="card-title text-info"><i className="fa fa-robot me-2"></i> Deal Intelligence Engine</h5>
-              <hr />
-              <div className="mb-3">
-                <label className="text-muted small text-uppercase">Technical Compliance</label>
-                <div className="fs-5 text-success"><i className="fa fa-check-circle me-1"></i> All Mandatory Requirements Met</div>
+                      </thead>
+                      <tbody>
+                        {quote.lines.map((l, i) => (
+                          <tr key={i}>
+                            <td>Product {l.productId}</td>
+                            <td>{l.quantity}</td>
+                            <td>₹{l.unitPrice}</td>
+                            <td>{l.discountPct}%</td>
+                            <td>₹{l.lineTotal}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                    <hr />
+                    <div className="d-flex justify-content-between">
+                      <h5>Gross: ₹{quote.totals?.gross}</h5>
+                      <h5>Discount: ₹{quote.totals?.discount}</h5>
+                      <h5 className="text-success">Net: ₹{quote.totals?.net}</h5>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="alert alert-info border-0 shadow-sm">
+                    <div className="d-flex mb-3">
+                      <i className="fa fa-info-circle fs-4 me-3 text-info"></i>
+                      <div>
+                        <strong>No quotation built yet</strong>
+                        <div className="small">Create a smart quotation linked to this deal&apos;s requirements.</div>
+                      </div>
+                    </div>
+                    <button className="btn btn-primary btn-sm w-100" onClick={() => router.push(`/quotations/create?dealId=${deal._id}`)}>
+                      Build Commercial Quote
+                    </button>
+                  </div>
+                )}
               </div>
-              <div className="mb-3">
-                <label className="text-muted small text-uppercase">Margin Analysis</label>
-                <div className="d-flex justify-content-between align-items-center">
-                  <span className="fs-5">Est. Margin</span>
-                  <span className="fs-5 fw-bold text-success">₹{deal.estimatedMargin.toLocaleString()}</span>
+            </div>
+
+          </div>
+
+          {/* Right Column: Engine Intelligence & Approvals */}
+          <div className="col-md-5">
+            <div className="card shadow-sm border-0 mb-4" style={{borderTop: '4px solid #17a2b8'}}>
+              <div className="card-body">
+                <h5 className="card-title text-info"><i className="fa fa-robot me-2"></i> Deal Intelligence Engine</h5>
+                <hr />
+                <div className="mb-3">
+                  <label className="text-muted small text-uppercase">Technical Compliance</label>
+                  <div className="fs-5 text-success"><i className="fa fa-check-circle me-1"></i> All Mandatory Requirements Met</div>
+                </div>
+                <div className="mb-3">
+                  <label className="text-muted small text-uppercase">Margin Analysis</label>
+                  <div className="d-flex justify-content-between align-items-center">
+                    <span className="fs-5">Est. Margin</span>
+                    <span className="fs-5 fw-bold text-success">₹{deal.estimatedMargin.toLocaleString()}</span>
+                  </div>
+                </div>
+                <div className="mb-3">
+                  <label className="text-muted small text-uppercase">Discount Governance</label>
+                  <div className="d-flex justify-content-between align-items-center">
+                    <span>Requested vs Allowed</span>
+                    <span><strong>{discount}%</strong> / 10%</span>
+                  </div>
+                  {discount > 10 && (
+                    <div className="alert alert-danger mt-2 mb-0 py-2 small">
+                      <i className="fa fa-exclamation-triangle me-1"></i> Approval Required (Exceeds Tier)
+                    </div>
+                  )}
                 </div>
               </div>
-              <div className="mb-3">
-                <label className="text-muted small text-uppercase">Discount Governance</label>
-                <div className="d-flex justify-content-between align-items-center">
-                  <span>Requested vs Allowed</span>
-                  <span><strong>{discount}%</strong> / 10%</span>
+            </div>
+
+            <div className="card shadow-sm border-0 mb-4">
+              <div className="card-header bg-white">
+                <h5 className="mb-0">Approval Status</h5>
+              </div>
+              <div className="card-body">
+                <div className="d-flex align-items-center mb-2">
+                  <div className={`spinner-grow spinner-grow-sm text-${deal.approvalStatus === 'Pending' ? 'warning' : 'success'} me-2`}></div>
+                  <strong>{deal.approvalStatus}</strong>
                 </div>
-                {discount > 10 && (
-                  <div className="alert alert-danger mt-2 mb-0 py-2 small">
-                    <i className="fa fa-exclamation-triangle me-1"></i> Approval Required (Exceeds Tier)
+                {deal.approvalStatus === 'Pending' && (
+                  <div className="mt-3">
+                    <button className="btn btn-success w-100 mb-2">Approve Deal</button>
+                    <button className="btn btn-outline-danger w-100">Reject / Request Change</button>
                   </div>
                 )}
               </div>
             </div>
           </div>
 
-          <div className="card shadow-sm border-0 mb-4">
-            <div className="card-header bg-white">
-              <h5 className="mb-0">Approval Status</h5>
-            </div>
-            <div className="card-body">
-              <div className="d-flex align-items-center mb-2">
-                <div className={`spinner-grow spinner-grow-sm text-${deal.approvalStatus === 'Pending' ? 'warning' : 'success'} me-2`}></div>
-                <strong>{deal.approvalStatus}</strong>
-              </div>
-              {deal.approvalStatus === 'Pending' && (
-                <div className="mt-3">
-                  <button className="btn btn-success w-100 mb-2">Approve Deal</button>
-                  <button className="btn btn-outline-danger w-100">Reject / Request Change</button>
-                </div>
-              )}
-            </div>
-          </div>
         </div>
-
       </div>
-    </div>
+    </ProtectedRoute>
   );
 }
