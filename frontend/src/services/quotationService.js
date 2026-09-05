@@ -1,4 +1,4 @@
-import { getAuthHeaders } from '../utils/auth';
+import { getAuthHeaders } from '@/utils/auth';
 
 const API_URL = 'http://127.0.0.1:5006/api';
 
@@ -23,7 +23,16 @@ export const createQuotation = async (data) => {
     },
     body: JSON.stringify(data)
   });
-  if (!res.ok) throw new Error('Failed to create quotation');
+  
+  if (!res.ok) {
+    let errMsg = 'Failed to create quotation';
+    try {
+      const errData = await res.json();
+      if (errData.error) errMsg = errData.error;
+    } catch (e) {}
+    throw new Error(errMsg);
+  }
+  
   return res.json();
 };
 

@@ -13,6 +13,10 @@ const schema = new mongoose.Schema({
   totals: {
     gross: Number, discount: Number, net: Number, margin: Number
   },
-  approvalState: String
+  approvalState: String,
+  customerToken: String,
+  proposedDiscountPct: Number,
+  riskScore: Number,
+  riskFactors: [String]
 }, { timestamps: true });
 module.exports = mongoose.model('Quotation', schema);

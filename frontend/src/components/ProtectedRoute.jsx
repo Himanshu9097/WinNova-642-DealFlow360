@@ -1,22 +1,21 @@
-'use client';
-import { useAuth } from '../context/AuthContext';
-import { useRouter } from 'next/navigation';
+import { useAuth } from '@/context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import { useEffect } from 'react';
 
 export default function ProtectedRoute({ children, allowedRoles }) {
   const { user, loading } = useAuth();
-  const router = useRouter();
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (!loading) {
       if (!user) {
-        router.push('/login');
+        navigate('/login');
       } else if (allowedRoles && !allowedRoles.includes(user.role)) {
         // Redirect to a default route based on role or show 403
-        router.push('/');
+        navigate('/');
       }
     }
-  }, [user, loading, router, allowedRoles]);
+  }, [user, loading, navigate, allowedRoles]);
 
   if (loading || !user) {
     return <div className="p-5 text-center">Loading Workspace...</div>;

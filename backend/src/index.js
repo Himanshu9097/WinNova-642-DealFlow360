@@ -9,7 +9,7 @@ connectDB();
 const app = express();
 
 // Middleware
-app.use(cors({ origin: process.env.CLIENT_URL || 'http://localhost:5175' }));
+app.use(cors({ origin: [process.env.CLIENT_URL || 'http://localhost:5175', 'http://localhost:5176', 'http://localhost:5177'] }));
 app.use(express.json());
 
 // Routes
@@ -23,6 +23,8 @@ app.use('/api/approvals', require('./features/routes/approvalRoutes'));
 app.use('/api/billing', require('./features/routes/billingRoutes'));
 app.use('/api/customers', require('./features/routes/customerRoutes'));
 app.use('/api/company', require('./features/routes/companyRoutes'));
+app.use('/api/products', require('./features/routes/productRoutes'));
+app.use('/api/b2b', require('./features/routes/b2bRoutes'));
 // Basic Route
 app.get('/', (req, res) => {
   res.send('DealFlow360 API is running...');
@@ -33,3 +35,4 @@ const PORT = process.env.PORT || 5006;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
+// Nodemon trigger 2
