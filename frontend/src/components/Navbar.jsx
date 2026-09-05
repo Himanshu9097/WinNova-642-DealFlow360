@@ -22,7 +22,7 @@ export default function Navbar() {
             <li className="nav-item"><a className="nav-link" href="/">Dashboard</a></li>
             
             {/* Sales & Deals */}
-            {isRole(['COMPANY_ADMIN', 'SALES_MANAGER', 'SALES_REP', 'FINANCE', 'OPERATIONS']) && (
+            {isRole(['COMPANY_ADMIN', 'SALES_MANAGER', 'SALES_REP']) && (
               <li className="nav-item"><a className="nav-link" href="/deals">Deals</a></li>
             )}
             {isRole(['COMPANY_ADMIN', 'SALES_MANAGER', 'SALES_REP']) && (
