@@ -2,101 +2,128 @@
 
 import { useEffect, useState } from 'react';
 
+import ProtectedRoute from '../components/ProtectedRoute';
+
 export default function Dashboard() {
   const [deals, setDeals] = useState([]);
 
   useEffect(() => {
-    fetch('http://localhost:5006/api/deals')
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    fetch('http://localhost:5006/api/deals', {
+      headers: { Authorization: `Bearer ${token}` }
+    })
       .then(res => res.json())
-      .then(data => setDeals(data))
+      .then(data => {
+        if (Array.isArray(data)) {
+          setDeals(data);
+        }
+      })
       .catch(console.error);
   }, []);
 
   return (
-    <div className="container">
-      <div className="row mb-4">
-        <div className="col-12">
-          <h1 className="display-4" style={{color: '#D6536D'}}>Deal Health & Operations Dashboard</h1>
-          <p className="lead">Overview of active deals, pipeline value, and approvals.</p>
+    <ProtectedRoute>
+      <div className="container">
+        <div className="row mb-4">
+          <div className="col-12">
+            <h1 className="display-4" style={{color: '#D6536D'}}>Deal Health & Operations Dashboard</h1>
+            <p className="lead">Overview of active deals, pipeline value, and approvals.</p>
+          </div>
         </div>
-      </div>
 
-      <div className="row mb-5">
-        <div className="col-md-3">
-          <div className="card shadow-sm border-0" style={{borderLeft: '4px solid #D6536D'}}>
-            <div className="card-body">
-              <h5 className="card-title text-muted">Active Deals</h5>
-              <h2 className="mb-0">{deals.length}</h2>
+        <div className="row mb-5">
+          <div className="col-md-3">
+            <div className="card text-white mb-3 shadow-sm" style={{ backgroundColor: '#D6536D' }}>
+              <div className="card-body">
+                <h5 className="card-title">Active Deals</h5>
+                <h2 className="card-text">{deals.length}</h2>
+              </div>
+            </div>
+          </div>
+          <div className="col-md-3">
+            <div className="card text-white bg-success mb-3 shadow-sm">
+              <div className="card-body">
+                <h5 className="card-title">Pipeline Value</h5>
+                <h2 className="card-text">
+                  ${deals.reduce((acc, deal) => acc + (deal.value || 0), 0).toLocaleString()}
+                </h2>
+              </div>
+            </div>
+          </div>
+          <div className="col-md-3">
+            <div className="card text-white bg-warning mb-3 shadow-sm">
+              <div className="card-body">
+                <h5 className="card-title">Pending Approvals</h5>
+                <h2 className="card-text">
+                  {deals.filter(d => d.status === 'NEGOTIATION').length}
+                </h2>
+              </div>
+            </div>
+          </div>
+          <div className="col-md-3">
+            <div className="card text-white bg-info mb-3 shadow-sm">
+              <div className="card-body">
+                <h5 className="card-title">Avg. Margin</h5>
+                <h2 className="card-text">
+                  {deals.length > 0 
+                    ? (deals.reduce((acc, deal) => acc + (deal.targetMargin || 0), 0) / deals.length).toFixed(1) 
+                    : 0}%
+                </h2>
+              </div>
             </div>
           </div>
         </div>
-        <div className="col-md-3">
-          <div className="card shadow-sm border-0" style={{borderLeft: '4px solid #28a745'}}>
-            <div className="card-body">
-              <h5 className="card-title text-muted">Pipeline Value</h5>
-              <h2 className="mb-0">$ {deals.reduce((acc, deal) => acc + (deal.value || 0), 0).toLocaleString()}</h2>
-            </div>
-          </div>
-        </div>
-        <div className="col-md-3">
-          <div className="card shadow-sm border-0" style={{borderLeft: '4px solid #ffc107'}}>
-            <div className="card-body">
-              <h5 className="card-title text-muted">Pending Approvals</h5>
-              <h2 className="mb-0">{deals.filter(d => d.approvalStatus === 'Pending').length}</h2>
-            </div>
-          </div>
-        </div>
-        <div className="col-md-3">
-          <div className="card shadow-sm border-0" style={{borderLeft: '4px solid #dc3545'}}>
-            <div className="card-body">
-              <h5 className="card-title text-muted">High Risk Deals</h5>
-              <h2 className="mb-0">{deals.filter(d => d.riskLevel === 'Critical' || d.riskLevel === 'High').length}</h2>
-            </div>
-          </div>
-        </div>
-      </div>
 
-      <div className="row">
-        <div className="col-12">
-          <div className="card shadow-sm border-0">
-            <div className="card-header bg-white" style={{ borderBottom: '2px solid #f8f9fa' }}>
-              <h4 className="mb-0">Recent Deals</h4>
-            </div>
-            <div className="card-body p-0">
-              <table className="table table-hover mb-0">
-                <thead className="bg-light">
-                  <tr>
-                    <th>Deal ID</th>
-                    <th>Title</th>
-                    <th>Stage</th>
-                    <th>Value</th>
-                    <th>Risk</th>
-                    <th>Approval</th>
-                    <th>Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {deals.length === 0 ? (
-                    <tr><td colSpan={7} className="text-center py-4">No deals found. Go to Admin to seed data.</td></tr>
-                  ) : (
-                    deals.map(deal => (
-                      <tr key={deal._id}>
-                        <td><strong>{deal.dealNumber}</strong></td>
-                        <td>{deal.title}</td>
-                        <td><span className={`badge bg-${deal.stage === 'Closed Won' ? 'success' : 'secondary'}`}>{deal.stage}</span></td>
-                        <td>${deal.value?.toLocaleString()}</td>
-                        <td><span className={`badge bg-${deal.riskLevel === 'Critical' ? 'danger' : deal.riskLevel === 'High' ? 'warning' : 'success'}`}>{deal.riskLevel}</span></td>
-                        <td>{deal.approvalStatus}</td>
-                        <td><a href={`/deals/${deal._id}`} className="btn btn-sm btn-outline-primary">View</a></td>
+        <div className="row">
+          <div className="col-12">
+            <div className="card shadow-sm border-0">
+              <div className="card-header bg-white border-bottom-0 pt-4 pb-0">
+                <h4 style={{color: '#D6536D'}}><i className="fa fa-list me-2"></i>Recent Deals</h4>
+              </div>
+              <div className="card-body p-0">
+                <div className="table-responsive">
+                  <table className="table table-hover align-middle mb-0">
+                    <thead className="table-light">
+                      <tr>
+                        <th className="ps-4">Deal Title</th>
+                        <th>Customer</th>
+                        <th>Value</th>
+                        <th>Margin</th>
+                        <th>Status</th>
+                        <th className="pe-4 text-end">Action</th>
                       </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
+                    </thead>
+                    <tbody>
+                      {deals.map(deal => (
+                        <tr key={deal._id}>
+                          <td className="ps-4 fw-medium">{deal.title}</td>
+                          <td>{deal.customerId?.name || 'Unknown'}</td>
+                          <td>${(deal.value || 0).toLocaleString()}</td>
+                          <td>
+                            <span className={`badge ${deal.targetMargin < 15 ? 'bg-danger' : 'bg-success'}`}>
+                              {deal.targetMargin}%
+                            </span>
+                          </td>
+                          <td>
+                            <span className={`badge rounded-pill ${deal.status === 'WON' ? 'bg-success' : deal.status === 'NEGOTIATION' ? 'bg-warning text-dark' : 'bg-secondary'}`}>
+                              {deal.status}
+                            </span>
+                          </td>
+                          <td className="pe-4 text-end">
+                            <a href={`/deals/${deal._id}`} className="btn btn-sm btn-outline-secondary">View Details</a>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
+    </ProtectedRoute>
   );
 }

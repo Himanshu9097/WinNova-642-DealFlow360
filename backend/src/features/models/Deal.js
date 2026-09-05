@@ -1,5 +1,7 @@
 const mongoose = require('mongoose');
 const schema = new mongoose.Schema({
+  companyId: { type: mongoose.Schema.Types.ObjectId, ref: 'Company', required: true },
+  
   dealNumber: String, title: String, 
   customerId: { type: mongoose.Schema.Types.ObjectId, ref: 'Customer' },
   stage: { type: String, default: 'Draft' },
