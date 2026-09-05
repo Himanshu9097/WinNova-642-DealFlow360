@@ -6,7 +6,7 @@ const schema = new mongoose.Schema({
   customerId: { type: mongoose.Schema.Types.ObjectId, ref: 'Customer' },
   version: Number, formatType: String, status: String,
   lines: [{
-    productId: { type: mongoose.Schema.Types.ObjectId, ref: 'Product' },
+    productId: String,
     quantity: Number, unitPrice: Number, discountPct: Number,
     lineTotal: Number, margin: Number
   }],

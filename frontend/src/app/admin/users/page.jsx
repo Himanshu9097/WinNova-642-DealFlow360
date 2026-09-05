@@ -16,7 +16,7 @@ export default function AdminUsers() {
   const fetchUsers = async () => {
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch('http://localhost:5006/api/users', {
+      const res = await fetch('http://127.0.0.1:5006/api/users', {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.ok) {
@@ -34,7 +34,7 @@ export default function AdminUsers() {
     e.preventDefault();
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch('http://localhost:5006/api/users', {
+      const res = await fetch('http://127.0.0.1:5006/api/users', {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',

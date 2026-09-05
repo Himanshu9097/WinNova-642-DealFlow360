@@ -1,17 +1,33 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useState, useMemo, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import QuotationIntelligencePanel from '../../../components/QuotationIntelligencePanel';
 import { createQuotation } from '../../../services/quotationService';
+import { getDeal } from '../../../services/dealService';
+import { getCompanySettings } from '../../../services/companyService';
 
-export default function CreateQuotation() {
+function CreateQuotationInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const dealId = searchParams.get('dealId');
+  const [deal, setDeal] = useState(null);
+  const [maxAllowedDiscount, setMaxAllowedDiscount] = useState(8);
+  
   const [formatType, setFormatType] = useState('Commercial');
   const [discountPct, setDiscountPct] = useState(0);
   const [lines, setLines] = useState([
     { productId: 'prod-1', name: 'Outdoor Camera IP68 8MP', quantity: 100, unitPrice: 13000 }
   ]);
+
+  useEffect(() => {
+    if (dealId) {
+      getDeal(dealId).then(data => setDeal(data.deal)).catch(console.error);
+    }
+    getCompanySettings()
+      .then(data => setMaxAllowedDiscount(data.maxAllowedDiscount || 8))
+      .catch(console.error);
+  }, [dealId]);
 
   const [compliance, setCompliance] = useState([
     { requirement: 'Ingress Protection', required: 'IP68', offered: 'IP68', status: 'PASS' },
@@ -49,17 +65,18 @@ export default function CreateQuotation() {
   const intelligenceData = {
     totalValue: totals.net,
     discountPct: discountPct,
-    allowedDiscount: 8, // mock policy
+    allowedDiscount: maxAllowedDiscount,
     marginPct: 15,
-    riskScore: discountPct > 8 ? 75 : 20,
+    riskScore: discountPct > maxAllowedDiscount ? 75 : 20,
     compliance: formatType === 'Technical + Commercial' ? compliance : null,
     formatType: formatType,
-    approvalState: discountPct > 8 ? 'Approval Required' : 'No Approval Required'
+    approvalState: discountPct > maxAllowedDiscount ? 'Approval Required' : 'No Approval Required'
   };
 
   const handleSave = async () => {
     try {
       const newQ = await createQuotation({
+        dealId,
         formatType,
         totalValue: totals.net,
         discountPct,
@@ -69,7 +86,11 @@ export default function CreateQuotation() {
         totals,
         compliance: formatType === 'Technical + Commercial' ? compliance : []
       });
-      router.push(`/quotations/${newQ._id}`);
+      if (dealId) {
+        router.push(`/deals/${dealId}`);
+      } else {
+        router.push(`/quotations/${newQ._id}`);
+      }
     } catch (err) {
       console.error(err);
       alert('Error creating quotation');
@@ -100,18 +121,14 @@ export default function CreateQuotation() {
             </div>
             <div className="card-body">
               <div className="row">
-                <div className="col-md-6 mb-3">
-                  <label className="form-label text-muted small fw-bold">Customer</label>
-                  <select className="form-select">
-                    <option>Acme Corp</option>
-                    <option>GlobalTech Inc</option>
-                  </select>
-                </div>
-                <div className="col-md-6 mb-3">
+                <div className="col-md-12 mb-3">
                   <label className="form-label text-muted small fw-bold">Deal Reference</label>
-                  <select className="form-select">
-                    <option>Acme Security Upgrade</option>
-                  </select>
+                  <input 
+                    type="text" 
+                    className="form-control" 
+                    value={deal ? `${deal.dealNumber} - ${deal.title}` : 'No deal linked'}
+                    disabled
+                  />
                 </div>
                 <div className="col-md-12 mb-3">
                   <label className="form-label text-muted small fw-bold">Quotation Type</label>
@@ -253,5 +270,13 @@ export default function CreateQuotation() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function CreateQuotation() {
+  return (
+    <Suspense fallback={<div className="container mt-5">Loading...</div>}>
+      <CreateQuotationInner />
+    </Suspense>
   );
 }

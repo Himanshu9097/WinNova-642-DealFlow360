@@ -16,7 +16,7 @@ export default function FulfillmentDetail({ params }) {
     const fetchOrder = async () => {
       try {
         const token = localStorage.getItem('token');
-        const res = await fetch(`http://localhost:5006/api/fulfillment/${resolvedParams.id}`, {
+        const res = await fetch(`http://127.0.0.1:5006/api/fulfillment/${resolvedParams.id}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (res.ok) {
@@ -38,7 +38,7 @@ export default function FulfillmentDetail({ params }) {
 
   const fetchRecommendation = async (token) => {
     try {
-      const res = await fetch(`http://localhost:5006/api/fulfillment/${resolvedParams.id}/recommendation`, {
+      const res = await fetch(`http://127.0.0.1:5006/api/fulfillment/${resolvedParams.id}/recommendation`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.ok) {
@@ -54,7 +54,7 @@ export default function FulfillmentDetail({ params }) {
     setAllocating(true);
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`http://localhost:5006/api/fulfillment/${resolvedParams.id}/allocate`, {
+      const res = await fetch(`http://127.0.0.1:5006/api/fulfillment/${resolvedParams.id}/allocate`, {
         method: 'POST',
         headers: { 
           Authorization: `Bearer ${token}`,

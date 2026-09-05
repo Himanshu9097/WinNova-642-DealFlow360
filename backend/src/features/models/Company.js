@@ -8,7 +8,8 @@ const companySchema = new mongoose.Schema({
   website: String,
   logo: String,
   currency: { type: String, default: 'USD' },
-  status: { type: String, default: 'ACTIVE' }
+  status: { type: String, default: 'ACTIVE' },
+  maxAllowedDiscount: { type: Number, default: 8 }
 }, { timestamps: true });
 
 module.exports = mongoose.model('Company', companySchema);

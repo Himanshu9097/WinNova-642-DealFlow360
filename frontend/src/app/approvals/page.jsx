@@ -73,13 +73,13 @@ export default function ApprovalsWorkspace() {
                           </div>
                           <p className="mb-1">{app.details}</p>
                           <div className="small text-muted">
-                            <strong>Reference:</strong> {app.reference.title} &bull; 
-                            <strong className="ms-2">Requested By:</strong> {app.requester.name} ({app.requester.role})
+                            <strong>Reference:</strong> {app.dealId?.title || app.quotationId?.quoteNumber || 'N/A'} &bull; 
+                            <strong className="ms-2">Requested By:</strong> {app.requesterId?.name || app.requester?.name}
                           </div>
                         </div>
                         <div className="col-md-2 text-end border-end pe-4">
                           <div className="text-muted small">Value at Risk</div>
-                          <div className="fs-5 fw-bold">${app.amount?.toLocaleString()}</div>
+                          <div className="fs-5 fw-bold">${app.amountAtRisk?.toLocaleString() || app.amount?.toLocaleString()}</div>
                         </div>
                         <div className="col-md-3 text-end">
                           <button 
@@ -125,8 +125,8 @@ export default function ApprovalsWorkspace() {
                         <tr key={app._id}>
                           <td>{app.requestNumber}</td>
                           <td>{app.type}</td>
-                          <td>{app.reference.title}</td>
-                          <td>{app.requester.name}</td>
+                          <td>{app.dealId?.title || app.quotationId?.quoteNumber || app.reference?.title || 'N/A'}</td>
+                          <td>{app.requesterId?.name || app.requester?.name}</td>
                           <td>
                             <span className={`badge bg-${app.status === 'Approved' ? 'success' : 'danger'}`}>
                               {app.status}

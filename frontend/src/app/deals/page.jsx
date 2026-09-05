@@ -34,9 +34,9 @@ export default function DealList() {
             <h2 style={{color: '#D6536D'}} className="mb-0">Deals Pipeline</h2>
             <span className="text-muted">Manage your opportunities</span>
           </div>
-          <button className="btn btn-primary" style={{backgroundColor: '#D6536D', borderColor: '#D6536D'}}>
+          <Link href="/deals/create" className="btn btn-primary" style={{backgroundColor: '#D6536D', borderColor: '#D6536D'}}>
             + New Deal
-          </button>
+          </Link>
         </div>
 
         {/* Kanban Board */}

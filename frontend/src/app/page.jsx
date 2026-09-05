@@ -11,7 +11,7 @@ export default function Dashboard() {
     const token = localStorage.getItem('token');
     if (!token) return;
 
-    fetch('http://localhost:5006/api/deals', {
+    fetch('http://127.0.0.1:5006/api/deals', {
       headers: { Authorization: `Bearer ${token}` }
     })
       .then(res => res.json())
