@@ -1,5 +1,6 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { ThemeProvider } from './context/ThemeContext';
 import { AuthProvider } from './context/AuthContext';
 import Navbar from './components/Navbar';
 import { ToastContainer } from 'react-toastify';
@@ -34,11 +35,12 @@ import B2BDashboard from './pages/b2b/B2BDashboard';
 
 export default function App() {
   return (
-    <Router>
-      <AuthProvider>
-        <div id="wrapwrap" className="o_openerp_website o_footer_effect_enable">
-          <Navbar />
-          <main>
+    <ThemeProvider>
+      <Router>
+        <AuthProvider>
+          <div id="wrapwrap" className="o_openerp_website o_footer_effect_enable">
+            <Navbar />
+            <main>
             <ToastContainer position="top-right" autoClose={3000} />
             <Routes>
               <Route path="/" element={<Home />} />
@@ -81,7 +83,8 @@ export default function App() {
             </Routes>
           </main>
         </div>
-      </AuthProvider>
-    </Router>
+        </AuthProvider>
+      </Router>
+    </ThemeProvider>
   );
 }
