@@ -7,8 +7,9 @@ const schema = new mongoose.Schema({
   version: Number, formatType: String, status: String,
   lines: [{
     productId: String,
+    name: String,
     quantity: Number, unitPrice: Number, discountPct: Number,
-    lineTotal: Number, margin: Number
+    lineTotal: Number, margin: Number, cost: Number
   }],
   totals: {
     gross: Number, discount: Number, net: Number, margin: Number

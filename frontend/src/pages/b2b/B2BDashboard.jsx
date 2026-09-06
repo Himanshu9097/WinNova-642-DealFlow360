@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { Link } from 'react-router-dom';
-import { Chatbox } from '@talkjs/react-components';
+import LiveChatWindow from '@/components/LiveChatWindow';
 
 const API = 'http://127.0.0.1:5006/api/b2b';
 
@@ -305,12 +305,12 @@ export default function B2BDashboard() {
             <div>
               <h5 className="mb-3">Messages</h5>
               <p className="text-muted mb-4">Chat with your account managers directly about any quotation or deal.</p>
-              <div className="border rounded bg-light d-flex justify-content-center overflow-hidden shadow-sm" style={{ height: '500px' }}>
-                <Chatbox
-                  appId="tSQSAHl9"
-                  userId={`cust_${user?.customerId || user?._id}`}
+              <div style={{ height: '520px' }}>
+                <LiveChatWindow 
                   conversationId={`b2b_${user?.customerId || user?._id}`}
-                  style={{ width: '100%', height: '100%' }}
+                  recipientName="Account Manager"
+                  senderName={user?.name || 'Customer'}
+                  accentColor="#D6536D"
                 />
               </div>
             </div>

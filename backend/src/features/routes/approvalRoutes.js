@@ -11,7 +11,10 @@ router.get('/', async (req, res) => {
     const approvals = await Approval.find({ companyId: req.companyId })
       .populate('requesterId', 'name role')
       .populate('dealId', 'title')
-      .populate('quotationId', 'quoteNumber')
+      .populate({
+        path: 'quotationId',
+        populate: { path: 'customerId', select: 'name' }
+      })
       .sort({ createdAt: -1 });
     res.json(approvals);
   } catch (error) {

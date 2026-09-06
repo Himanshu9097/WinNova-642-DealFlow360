@@ -1,7 +1,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { Chatbox } from '@talkjs/react-components';
+import LiveChatWindow from '@/components/LiveChatWindow';
 
 export default function CustomerPortal() {
   const params = useParams();
@@ -64,7 +64,7 @@ export default function CustomerPortal() {
   };
 
   return (
-    <div className="container-fluid px-4 mt-5">
+    <div className="container-fluid px-4 mt-4">
       <div className="row">
         {/* Left Column: Quotation Details */}
         <div className="col-lg-8 mb-4">
@@ -73,7 +73,7 @@ export default function CustomerPortal() {
           <div className="d-flex justify-content-between align-items-center">
             <div>
               <h2 className="mb-0">Quotation {quote.quoteNumber}</h2>
-              <span className="text-light opacity-75">Prepared for: {deal.customerId?.name || 'Customer'}</span>
+              <span className="text-light opacity-75">Prepared for: {deal?.customerId?.name || quote?.customerId?.name || 'Valued Customer'}</span>
             </div>
             <div>
               {quote.status === 'Accepted' && <span className="badge bg-success fs-5 px-3 py-2">Accepted</span>}
@@ -86,23 +86,25 @@ export default function CustomerPortal() {
           </div>
         </div>
         
-        <div className="card-body p-5 bg-white">
-          <div className="row mb-5">
-            <div className="col-12">
-              <h4 className="text-uppercase text-muted mb-3" style={{letterSpacing: '1px'}}>Technical Compliance Summary</h4>
-              <p className="lead">Your specified requirements have been reviewed and matched with our proposed solution.</p>
-              <div className="d-flex gap-3 mt-3">
-                {requirements.map((req) => (
-                  <div key={req._id} className="border p-3 rounded bg-light" style={{minWidth: '200px'}}>
-                    <h6 className="mb-1">{req.label}</h6>
-                    <div className="text-success fw-bold"><i className="fa fa-check-circle me-1"></i> {req.offeredValue}</div>
-                  </div>
-                ))}
+        <div className="card-body p-4 bg-white">
+          {((quote.compliance && quote.compliance.length > 0) || (requirements && requirements.length > 0)) && (
+            <div className="row mb-4">
+              <div className="col-12">
+                <h5 className="text-uppercase text-muted mb-3" style={{letterSpacing: '1px'}}>Technical Compliance Summary</h5>
+                <p className="lead fs-6">Your specified requirements have been reviewed and matched with our proposed solution.</p>
+                <div className="d-flex flex-wrap gap-3 mt-3">
+                  {(quote.compliance || requirements || []).map((req, idx) => (
+                    <div key={req._id || idx} className="border p-3 rounded bg-light" style={{minWidth: '180px'}}>
+                      <h6 className="mb-1">{req.requirement || req.label}</h6>
+                      <div className="text-success fw-bold"><i className="fa fa-check-circle me-1"></i> {req.offered || req.offeredValue}</div>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
-          </div>
+          )}
 
-          <h4 className="text-uppercase text-muted mb-3" style={{letterSpacing: '1px'}}>Commercial Offer</h4>
+          <h5 className="text-uppercase text-muted mb-3" style={{letterSpacing: '1px'}}>Commercial Offer</h5>
           <table className="table table-bordered mb-4">
             <thead className="table-light">
               <tr>
@@ -113,12 +115,12 @@ export default function CustomerPortal() {
               </tr>
             </thead>
             <tbody>
-              {quote.lines.map((l, i) => (
+              {quote.lines?.map((l, i) => (
                 <tr key={i}>
-                  <td>{l.productId}</td>
+                  <td>{l.name || (l.productId ? `Product ${l.productId.slice(-6)}` : 'Item')}</td>
                   <td className="text-center">{l.quantity}</td>
-                  <td className="text-end">₹{l.unitPrice}</td>
-                  <td className="text-end fw-bold">₹{l.lineTotal}</td>
+                  <td className="text-end">₹{(l.unitPrice || 0).toLocaleString()}</td>
+                  <td className="text-end fw-bold">₹{(l.lineTotal || 0).toLocaleString()}</td>
                 </tr>
               ))}
             </tbody>
@@ -126,19 +128,19 @@ export default function CustomerPortal() {
 
           <div className="row">
             <div className="col-md-6 offset-md-6">
-              <div className="p-4 bg-light rounded">
+              <div className="p-3 bg-light rounded">
                 <div className="d-flex justify-content-between mb-2">
                   <span className="text-muted">Subtotal</span>
-                  <span>₹{quote.totals?.gross}</span>
+                  <span>₹{(quote.totals?.gross || 0).toLocaleString()}</span>
                 </div>
                 <div className="d-flex justify-content-between mb-2">
                   <span className="text-muted">Discount</span>
-                  <span className="text-danger">-₹{quote.totals?.discount}</span>
+                  <span className="text-danger">-₹{(quote.totals?.discount || 0).toLocaleString()}</span>
                 </div>
                 <hr />
                 <div className="d-flex justify-content-between">
-                  <span className="fs-4 fw-bold">Total (Net)</span>
-                  <span className="fs-4 fw-bold" style={{color: '#D6536D'}}>₹{quote.totals?.net}</span>
+                  <span className="fs-5 fw-bold">Total (Net)</span>
+                  <span className="fs-5 fw-bold" style={{color: '#D6536D'}}>₹{(quote.totals?.net || 0).toLocaleString()}</span>
                 </div>
               </div>
             </div>
@@ -179,20 +181,13 @@ export default function CustomerPortal() {
 
         {/* Right Column: Live Chat */}
         <div className="col-lg-4 mb-4">
-          <div className="card shadow-lg border-0 rounded-4 h-100">
-            <div className="card-header bg-white border-0 p-4">
-              <h4 className="mb-0 text-dark"><i className="fa fa-comments me-2" style={{color: '#D6536D'}}></i> Live Chat with Sales</h4>
-              <p className="text-muted small mb-0 mt-1">Have questions or want to negotiate? Send us a message!</p>
-            </div>
-            <div className="card-body p-0" style={{ minHeight: '600px' }}>
-              <Chatbox
-                appId="tSQSAHl9"
-                userId={`cust_${deal.customerId._id}`}
-                conversationId={`quote_${quote._id}`}
-                style={{ width: '100%', height: '100%' }}
-              />
-            </div>
-          </div>
+          <LiveChatWindow 
+            conversationId={`quote_${quote._id}`}
+            recipientName="Sales Representative"
+            senderName={deal?.customerId?.name || quote?.customerId?.name || 'Customer'}
+            senderRole="customer"
+            accentColor="#D6536D"
+          />
         </div>
       </div>
     </div>

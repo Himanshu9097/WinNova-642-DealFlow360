@@ -3,10 +3,12 @@ import SkeletonLoader from '@/components/SkeletonLoader';
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Link } from 'react-router-dom';
-import { getQuotation, submitForApproval } from '@/services/quotationService';
+import { getQuotation, submitForApproval, deleteQuotation } from '@/services/quotationService';
 import QuotationStatusBadge from '@/components/QuotationStatusBadge';
 import { useAuth } from '@/context/AuthContext';
-import { Chatbox } from '@talkjs/react-components';
+import LiveChatWindow from '@/components/LiveChatWindow';
+import { toast } from 'react-toastify';
+import ConfirmModal from '@/components/ConfirmModal';
 
 export default function QuotationDetail() {
   const params = useParams();
@@ -15,6 +17,8 @@ export default function QuotationDetail() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [activeTab, setActiveTab] = useState('Overview');
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const { user } = useAuth();
   
   const portalUrl = quote?.customerToken ? `${window.location.origin}/customer/quote/${quote.customerToken}` : null;
@@ -47,6 +51,21 @@ export default function QuotationDetail() {
     setSubmitting(false);
   };
 
+  const confirmDelete = async () => {
+    setDeleting(true);
+    try {
+      await deleteQuotation(quote._id);
+      toast.success('Quotation deleted successfully!');
+      navigate('/quotations');
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to delete quotation');
+    } finally {
+      setDeleting(false);
+      setShowDeleteModal(false);
+    }
+  };
+
   return (
     <div className="container">
       <div className="mb-4">
@@ -54,6 +73,24 @@ export default function QuotationDetail() {
           &larr; Back to Quotations
         </button>
       </div>
+
+      {quote.proposedDiscountPct && (
+        <div className="alert alert-warning border-0 shadow-sm mb-4">
+          <div className="d-flex justify-content-between align-items-center">
+            <div>
+              <h5 className="alert-heading mb-1 text-dark fw-bold">
+                <i className="fa fa-handshake me-2 text-warning"></i> Customer Counter-Offer Received!
+              </h5>
+              <p className="mb-0 text-dark">
+                The customer proposed a new discount of <strong>{quote.proposedDiscountPct}%</strong> (Original quote discount: {quote.discountPct || 0}%).
+              </p>
+            </div>
+            <button className="btn btn-dark btn-sm fw-bold px-3 shadow-sm" onClick={() => navigate('/approvals')}>
+              Review in Approvals Workspace &rarr;
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Top Summary Section */}
       <div className="card shadow-sm border-0 mb-4 bg-light">
@@ -105,6 +142,9 @@ export default function QuotationDetail() {
                     Preview PDF
                   </button>
                 </div>
+                <button className="btn btn-outline-danger btn-sm w-100" onClick={() => setShowDeleteModal(true)}>
+                  <i className="fa fa-trash me-1"></i> Delete Quotation
+                </button>
               </div>
             </div>
           </div>
@@ -242,6 +282,14 @@ export default function QuotationDetail() {
                           {quote.discountPct}%
                         </strong>
                       </div>
+                      {quote.proposedDiscountPct && (
+                        <div className="d-flex justify-content-between mb-2">
+                          <span className="text-warning fw-bold">Customer Proposed Counter:</span>
+                          <strong className="text-warning fw-bold">
+                            {quote.proposedDiscountPct}%
+                          </strong>
+                        </div>
+                      )}
                       <div className="d-flex justify-content-between text-muted">
                         <span>Allowed Discount:</span>
                         <span>{quote.allowedDiscount}%</span>
@@ -297,12 +345,13 @@ export default function QuotationDetail() {
             <div>
               <h5 className="mb-3">Live Customer Negotiation</h5>
               <p className="text-muted mb-4">Chat directly with the customer regarding this quotation. Messages will appear in real-time on their portal.</p>
-              <div className="border rounded bg-light d-flex justify-content-center overflow-hidden shadow-sm" style={{ height: '500px' }}>
-                <Chatbox
-                  appId="tSQSAHl9"
-                  userId={`user_${user._id}`}
+              <div style={{ height: '520px' }}>
+                <LiveChatWindow 
                   conversationId={`quote_${quote._id}`}
-                  style={{ width: '100%', height: '100%' }}
+                  recipientName={quote.customerId?.name || 'Customer'}
+                  senderName={user?.name || 'Sales Representative'}
+                  senderRole="seller"
+                  accentColor="#D6536D"
                 />
               </div>
             </div>
@@ -333,6 +382,16 @@ export default function QuotationDetail() {
 
         </div>
       </div>
+
+      <ConfirmModal 
+        isOpen={showDeleteModal}
+        title={`Delete Quotation ${quote.quoteNumber || ''}?`}
+        message="Are you sure you want to delete this quotation permanently? This action cannot be undone."
+        confirmText="Delete Permanently"
+        loading={deleting}
+        onConfirm={confirmDelete}
+        onClose={() => setShowDeleteModal(false)}
+      />
     </div>
   );
 }

@@ -18,15 +18,12 @@ router.get('/portal/:token', async (req, res) => {
     
     if (!quote) return res.status(404).json({ error: 'Invalid or expired secure link' });
     
-    const deal = await Deal.findById(quote.dealId._id).populate('customerId', 'name');
-    // Using dummy requirements as real model might not have it
-    const requirements = [
-      { _id: '1', label: 'IP Rating', offeredValue: 'IP68' },
-      { _id: '2', label: 'Resolution', offeredValue: '8MP' }
-    ];
+    const deal = quote.dealId ? await Deal.findById(quote.dealId._id).populate('customerId', 'name') : { customerId: quote.customerId };
+    const requirements = (quote.compliance && quote.compliance.length > 0) ? quote.compliance : [];
 
     res.json({ quote, deal, requirements });
   } catch (err) {
+    console.error('Portal load error:', err);
     res.status(500).json({ error: 'Failed to load quote' });
   }
 });
@@ -88,6 +85,22 @@ router.use(requireAuth);
 router.post('/', requireRole(['COMPANY_ADMIN', 'SALES_MANAGER', 'SALES_REP']), async (req, res) => {
   try {
     let data = req.body;
+
+    const mongoose = require('mongoose');
+    if (data.dealId && !mongoose.Types.ObjectId.isValid(data.dealId)) {
+      delete data.dealId;
+    }
+    if (data.customerId && !mongoose.Types.ObjectId.isValid(data.customerId)) {
+      delete data.customerId;
+    }
+
+    if (data.dealId && !data.customerId) {
+      const dealObj = await Deal.findById(data.dealId);
+      if (dealObj && dealObj.customerId) {
+        data.customerId = dealObj.customerId;
+      }
+    }
+
     if(data.lines) {
       data.totals = calculateTotals(data.lines);
     }
@@ -114,8 +127,11 @@ router.post('/', requireRole(['COMPANY_ADMIN', 'SALES_MANAGER', 'SALES_REP']), a
     );
 
     const customerToken = crypto.randomBytes(16).toString('hex');
+    const quoteNumber = data.quoteNumber || `QT-${Date.now().toString().slice(-6)}`;
+
     const quote = await Quotation.create({ 
       ...data, 
+      quoteNumber,
       status, 
       companyId: req.companyId, 
       customerToken,
@@ -135,12 +151,12 @@ router.post('/', requireRole(['COMPANY_ADMIN', 'SALES_MANAGER', 'SALES_REP']), a
         companyId: req.companyId,
         requestNumber: `APP-${Date.now().toString().slice(-6)}`,
         type: 'Quotation Discount',
-        dealId: quote.dealId,
+        dealId: quote.dealId || undefined,
         quotationId: quote._id,
         requesterId: req.user._id,
         status: 'Pending',
         details: `Discount of ${discountPct.toFixed(1)}% requested (Limit: ${maxLimit}%). Risk Score: ${riskScore}.${riskDetails}`,
-        amountAtRisk: data.totals.discount
+        amountAtRisk: data.totals?.discount || 0
       });
     }
 
@@ -203,7 +219,7 @@ router.put('/:id', requireRole(['COMPANY_ADMIN', 'SALES_MANAGER', 'SALES_REP']),
         quotationId: quote._id,
         requesterId: req.user._id,
         details: `Customer Counter: Discount of ${discountPct.toFixed(1)}% requested (Limit: ${maxLimit}%). Risk Score: ${riskScore}.${riskDetails}`,
-        amountAtRisk: data.totals.discount
+        amountAtRisk: data.totals?.discount || 0
       });
     }
   }
@@ -211,10 +227,40 @@ router.put('/:id', requireRole(['COMPANY_ADMIN', 'SALES_MANAGER', 'SALES_REP']),
   res.json(quote);
 });
 
+router.get('/', async (req, res) => {
+  try {
+    const quotations = await Quotation.find({ companyId: req.companyId })
+      .populate('dealId', 'title')
+      .populate('customerId', 'name')
+      .sort({ createdAt: -1 });
+    res.json(quotations);
+  } catch (err) {
+    console.error('GET quotations error:', err);
+    res.status(500).json({ error: 'Failed to fetch quotations' });
+  }
+});
+
 router.get('/:id', async (req, res) => {
-  const quote = await Quotation.findOne({ _id: req.params.id, companyId: req.companyId });
-  if (!quote) return res.status(404).json({ error: 'Quotation not found' });
-  res.json(quote);
+  try {
+    const quote = await Quotation.findOne({ _id: req.params.id, companyId: req.companyId })
+      .populate('dealId', 'title')
+      .populate('customerId', 'name');
+    if (!quote) return res.status(404).json({ error: 'Quotation not found' });
+    res.json(quote);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch quotation' });
+  }
+});
+
+router.delete('/:id', requireRole(['COMPANY_ADMIN', 'SALES_MANAGER', 'SALES_REP']), async (req, res) => {
+  try {
+    const quote = await Quotation.findOneAndDelete({ _id: req.params.id, companyId: req.companyId });
+    if (!quote) return res.status(404).json({ error: 'Quotation not found' });
+    res.json({ message: 'Quotation deleted successfully' });
+  } catch (err) {
+    console.error('DELETE quotation error:', err);
+    res.status(500).json({ error: 'Failed to delete quotation' });
+  }
 });
 
 module.exports = router;
