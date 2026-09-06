@@ -8,9 +8,28 @@ const { requireAuth, requireRole } = require('../../middleware/authMiddleware');
 
 router.use(requireAuth);
 
+const Invoice = require('../models/Invoice');
+
 router.get('/', async (req, res) => {
-  const deals = await Deal.find({ companyId: req.companyId }).populate('customerId');
-  res.json(deals);
+  try {
+    const deals = await Deal.find({ companyId: req.companyId }).populate('customerId');
+    const invoices = await Invoice.find({ companyId: req.companyId, status: 'Paid' });
+    
+    // Map paid deal IDs
+    const paidDealIds = new Set(invoices.map(i => i.dealId?.toString()).filter(Boolean));
+    
+    for (const deal of deals) {
+      if (paidDealIds.has(deal._id.toString()) && deal.stage !== 'Completed') {
+        deal.stage = 'Completed';
+        deal.billingStatus = 'Paid';
+        await deal.save();
+      }
+    }
+    
+    res.json(deals);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 router.post('/', requireRole(['COMPANY_ADMIN', 'SALES_MANAGER', 'SALES_REP']), async (req, res) => {

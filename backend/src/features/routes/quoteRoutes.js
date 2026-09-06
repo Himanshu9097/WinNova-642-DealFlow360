@@ -9,6 +9,37 @@ const crypto = require('crypto');
 const Approval = require('../models/Approval');
 const Deal = require('../models/Deal');
 
+const Customer = require('../models/Customer');
+const { sendNewQuotationEmail, sendQuotationStatusUpdateEmail } = require('../../utils/mailService');
+
+const notifyQuotationCreated = async (quote) => {
+  try {
+    const customer = quote.customerId ? await Customer.findById(quote.customerId) : null;
+    if (customer && customer.email) {
+      const clientUrl = process.env.CLIENT_URL || 'http://localhost:5175';
+      const portalUrl = `${clientUrl}/customer/quote/${quote.customerToken}`;
+      sendNewQuotationEmail(customer.email, customer.name, quote.quoteNumber, quote.totals?.net, portalUrl)
+        .catch(err => console.error('Failed to send new quotation email:', err));
+    }
+  } catch (e) {
+    console.error('Failed sending new quotation email:', e);
+  }
+};
+
+const notifyQuotationStatusChanged = async (quote, newStatus) => {
+  try {
+    const customer = quote.customerId ? await Customer.findById(quote.customerId) : null;
+    if (customer && customer.email) {
+      const clientUrl = process.env.CLIENT_URL || 'http://localhost:5175';
+      const portalUrl = `${clientUrl}/customer/quote/${quote.customerToken}`;
+      sendQuotationStatusUpdateEmail(customer.email, customer.name, quote.quoteNumber, newStatus, portalUrl)
+        .catch(err => console.error('Failed to send quotation status update email:', err));
+    }
+  } catch (e) {
+    console.error('Failed sending quotation status update email:', e);
+  }
+};
+
 // --- PUBLIC PORTAL ENDPOINTS ---
 router.get('/portal/:token', async (req, res) => {
   try {
@@ -36,6 +67,8 @@ router.post('/portal/:token/accept', async (req, res) => {
     quote.status = 'Accepted';
     await quote.save();
     
+    notifyQuotationStatusChanged(quote, 'Accepted');
+
     res.json({ success: true, quote });
   } catch (err) {
     res.status(500).json({ error: 'Failed to accept quote' });
@@ -52,6 +85,8 @@ router.post('/portal/:token/counter', async (req, res) => {
     quote.proposedDiscountPct = proposedDiscount;
     await quote.save();
     
+    notifyQuotationStatusChanged(quote, 'Negotiating');
+
     // Create approval for manager
     const discountValue = (quote.totals.gross * proposedDiscount) / 100;
     
@@ -160,6 +195,8 @@ router.post('/', requireRole(['COMPANY_ADMIN', 'SALES_MANAGER', 'SALES_REP']), a
       });
     }
 
+    notifyQuotationCreated(quote);
+
     res.json(quote);
   } catch (err) {
     console.error("CREATE QUOTATION ERROR:", err);
@@ -223,6 +260,8 @@ router.put('/:id', requireRole(['COMPANY_ADMIN', 'SALES_MANAGER', 'SALES_REP']),
       });
     }
   }
+
+  notifyQuotationStatusChanged(quote, status);
 
   res.json(quote);
 });

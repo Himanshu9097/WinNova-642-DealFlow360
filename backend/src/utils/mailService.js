@@ -71,8 +71,74 @@ const sendPasswordResetEmail = async (to, name, resetUrl) => {
   return sendEmail(to, subject, html);
 };
 
+const sendCustomerCreatedEmail = async (to, customerName, companyName) => {
+  if (!to) return;
+  const subject = `Welcome to ${companyName || 'DealFlow360'} - Customer Profile Created`;
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
+      <h2 style="color: #D6536D;">Hello ${customerName},</h2>
+      <p>A new customer account profile has been created for you under <strong>${companyName || 'DealFlow360'}</strong>.</p>
+      <p>You can now receive quotations, track deals, and view invoices online seamlessly.</p>
+      <br/>
+      <p>Best regards,<br/>The DealFlow360 Team</p>
+    </div>
+  `;
+  return sendEmail(to, subject, html);
+};
+
+const sendNewQuotationEmail = async (to, customerName, quoteNumber, grandTotal, portalUrl) => {
+  if (!to) return;
+  const subject = `New Quotation ${quoteNumber} Received`;
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
+      <h2 style="color: #D6536D;">New Quotation Available</h2>
+      <p>Hi ${customerName || 'Valued Customer'},</p>
+      <p>You have received a new quotation <strong>${quoteNumber}</strong> with a total value of <strong>₹${Number(grandTotal || 0).toLocaleString()}</strong>.</p>
+      ${portalUrl ? `<p><a href="${portalUrl}" style="display: inline-block; padding: 10px 20px; background-color: #D6536D; color: white; text-decoration: none; border-radius: 5px; font-weight: bold;">View & Accept Quotation</a></p>` : ''}
+      <br/>
+      <p>Best regards,<br/>The DealFlow360 Sales Team</p>
+    </div>
+  `;
+  return sendEmail(to, subject, html);
+};
+
+const sendQuotationStatusUpdateEmail = async (to, customerName, quoteNumber, newStatus, portalUrl) => {
+  if (!to) return;
+  const subject = `Quotation ${quoteNumber} Status Updated to ${newStatus}`;
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
+      <h2 style="color: #D6536D;">Quotation Status Update</h2>
+      <p>Hi ${customerName || 'Valued Customer'},</p>
+      <p>The status of quotation <strong>${quoteNumber}</strong> has been updated to: <strong style="color: #D6536D;">${newStatus}</strong>.</p>
+      ${portalUrl ? `<p><a href="${portalUrl}" style="display: inline-block; padding: 10px 20px; background-color: #D6536D; color: white; text-decoration: none; border-radius: 5px; font-weight: bold;">View Updated Quotation</a></p>` : ''}
+      <br/>
+      <p>Best regards,<br/>The DealFlow360 Sales Team</p>
+    </div>
+  `;
+  return sendEmail(to, subject, html);
+};
+
+const sendCompanyRegistrationEmail = async (to, adminName, companyName) => {
+  if (!to) return;
+  const subject = `Company Registration Successful - ${companyName}`;
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
+      <h2 style="color: #D6536D;">Congratulations ${adminName}!</h2>
+      <p>Your company <strong>${companyName}</strong> has been successfully registered on DealFlow360.</p>
+      <p>Your administrator workspace is active. You can now configure products, invite team members, and start managing enterprise deal flows.</p>
+      <br/>
+      <p>Best regards,<br/>The DealFlow360 Team</p>
+    </div>
+  `;
+  return sendEmail(to, subject, html);
+};
+
 module.exports = {
   sendWelcomeEmail,
   sendAdminCreatedUserEmail,
-  sendPasswordResetEmail
+  sendPasswordResetEmail,
+  sendCustomerCreatedEmail,
+  sendNewQuotationEmail,
+  sendQuotationStatusUpdateEmail,
+  sendCompanyRegistrationEmail
 };

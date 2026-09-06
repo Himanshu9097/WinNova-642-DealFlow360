@@ -5,7 +5,7 @@ const Company = require('../models/Company');
 const User = require('../models/User');
 const crypto = require('crypto');
 const { requireAuth } = require('../../middleware/authMiddleware');
-const { sendWelcomeEmail, sendPasswordResetEmail } = require('../../utils/mailService');
+const { sendWelcomeEmail, sendPasswordResetEmail, sendCompanyRegistrationEmail } = require('../../utils/mailService');
 
 const router = express.Router();
 const JWT_SECRET = process.env.SESSION_SECRET || 'secret';
@@ -63,8 +63,9 @@ router.post('/register-company', async (req, res) => {
 
     const token = generateToken(admin._id);
 
-    // Send welcome email asynchronously
+    // Send welcome and company registration emails asynchronously
     sendWelcomeEmail(admin.email, admin.name).catch(err => console.error('Failed to send welcome email', err));
+    sendCompanyRegistrationEmail(admin.email, admin.name, company.name).catch(err => console.error('Failed to send company registration email', err));
 
     res.status(201).json({
       message: 'Company and Admin created successfully',

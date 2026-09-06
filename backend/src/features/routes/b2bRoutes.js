@@ -20,7 +20,7 @@ router.get('/dashboard', async (req, res) => {
       Invoice.find({ customerId, companyId: req.companyId })
     ]);
 
-    const activeDeals = deals.filter(d => d.stage !== 'Closed Won' && d.stage !== 'Lost');
+    const activeDeals = deals.filter(d => d.stage !== 'Closed Won' && d.stage !== 'Lost' && d.stage !== 'Completed' && d.billingStatus !== 'Paid');
     const pendingQuotes = quotations.filter(q => q.status !== 'Accepted' && q.status !== 'Rejected');
     const unpaidInvoices = invoices.filter(i => i.status === 'Pending' || i.status === 'Overdue');
 

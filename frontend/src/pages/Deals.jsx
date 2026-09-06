@@ -5,7 +5,7 @@ import { Link } from 'react-router-dom';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { getDeals, updateDealStage } from '@/services/dealService';
 
-const STAGES = ['Discovery', 'Proposal', 'Negotiation', 'Closed Won'];
+const STAGES = ['Discovery', 'Proposal', 'Negotiation', 'Closed Won', 'Completed'];
 
 export default function DealList() {
   const [deals, setDeals] = useState([]);

@@ -6,6 +6,8 @@ export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [leftWidth, setLeftWidth] = useState(30); // percentage width for left column
+  const [isDragging, setIsDragging] = useState(false);
   const { login, user, loading } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -28,6 +30,43 @@ export default function Login() {
     }
   }, [searchParams]);
 
+  const handleMouseDown = (e) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  useEffect(() => {
+    const handleMouseMove = (e) => {
+      if (!isDragging) return;
+      const containerWidth = window.innerWidth;
+      const newWidthPct = (e.clientX / containerWidth) * 100;
+      // Clamp between 10% and 75%
+      const clamped = Math.min(Math.max(newWidthPct, 10), 75);
+      setLeftWidth(clamped);
+    };
+
+    const handleMouseUp = () => {
+      setIsDragging(false);
+    };
+
+    if (isDragging) {
+      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = 'col-resize';
+      document.body.style.userSelect = 'none';
+    } else {
+      document.body.style.cursor = 'default';
+      document.body.style.userSelect = 'auto';
+    }
+
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = 'default';
+      document.body.style.userSelect = 'auto';
+    };
+  }, [isDragging]);
+
   if (loading || user) {
     return null;
   }
@@ -49,19 +88,120 @@ export default function Login() {
     window.location.href = 'http://localhost:5006/api/auth/github';
   };
 
+  // Calculate dynamic font scale based on left panel width
+  const fontRem = Math.min(Math.max(leftWidth * 0.16 + 1.0, 1.5), 8.5);
+  const letterSpacingEm = Math.min(Math.max(leftWidth * 0.009 + 0.1, 0.12), 0.45);
+
   return (
-    <div className="d-flex vh-100 overflow-hidden bg-white">
-      {/* Left Column: Visual/Brand */}
-      <div className="d-none d-lg-flex col-lg-6 align-items-center justify-content-center position-relative" style={{ backgroundColor: '#1a1a2e', background: 'linear-gradient(135deg, #1a1a2e 0%, #D6536D 100%)' }}>
-        <div className="position-absolute w-100 h-100" style={{ opacity: 0.1, backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'60\' height=\'60\' viewBox=\'0 0 60 60\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'none\' fill-rule=\'evenodd\'%3E%3Cg fill=\'%23ffffff\' fill-opacity=\'1\'%3E%3Cpath d=\'M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z\'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")' }}></div>
-        <div className="text-white text-center position-relative z-index-1 p-5">
-          <h1 className="display-4 fw-bolder mb-3" style={{ letterSpacing: '-1px' }}>DealFlow<span style={{ color: '#ffb6b9' }}>360</span></h1>
-          <p className="lead fw-light text-white-50 mb-0">The modern operating system for closing deals, managing inventory, and seamless billing.</p>
+    <div className="d-flex vh-100 overflow-hidden bg-white position-relative" style={{ userSelect: isDragging ? 'none' : 'auto' }}>
+      {/* Left Column: Draggable Vertical ODOO HACKATHON Banner */}
+      <div 
+        className="d-none d-lg-flex flex-column align-items-center justify-content-center position-relative overflow-hidden" 
+        style={{ 
+          width: `${leftWidth}%`,
+          height: '100vh',
+          backgroundColor: '#060911',
+          backgroundImage: `
+            radial-gradient(circle at 50% 50%, rgba(225, 29, 72, 0.15) 0%, transparent 80%),
+            linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px)
+          `,
+          backgroundSize: '100% 100%, 100% 32px',
+          color: '#ffffff',
+          userSelect: 'none',
+          transition: isDragging ? 'none' : 'width 0.1s ease-out'
+        }}
+      >
+        {/* Parallel Vertical Columns: ODOO and HACKATHON side-by-side */}
+        <div 
+          className="d-flex flex-row align-items-center justify-content-center h-100 text-nowrap"
+          style={{ 
+            gap: `${Math.min(Math.max(leftWidth * 0.06, 0.5), 3.5)}rem`,
+            userSelect: 'none'
+          }}
+        >
+          {/* Parallel Column 1: ODOO */}
+          <div 
+            className="fw-black text-uppercase font-monospace d-flex align-items-center justify-content-center"
+            style={{ 
+              writingMode: 'vertical-rl',
+              transform: 'rotate(180deg)',
+              height: '88vh',
+              fontSize: `${Math.min(Math.max(leftWidth * 0.12 + 0.9, 1.4), 6.5)}rem`,
+              fontWeight: 900,
+              letterSpacing: `${letterSpacingEm * 1.2}em`,
+              color: '#ffffff',
+              textShadow: isDragging ? '0 0 40px rgba(225, 29, 72, 0.7)' : '0 0 25px rgba(225, 29, 72, 0.35)',
+              opacity: 0.98,
+              transition: 'font-size 0.05s linear, letter-spacing 0.05s linear'
+            }}
+          >
+            ODOO
+          </div>
+
+          {/* Parallel Column 2: HACKATHON */}
+          <div 
+            className="fw-black text-uppercase font-monospace d-flex align-items-center justify-content-center"
+            style={{ 
+              writingMode: 'vertical-rl',
+              transform: 'rotate(180deg)',
+              height: '88vh',
+              fontSize: `${Math.min(Math.max(leftWidth * 0.10 + 0.7, 1.2), 5.5)}rem`,
+              fontWeight: 900,
+              letterSpacing: `${letterSpacingEm}em`,
+              color: '#fda4af',
+              textShadow: isDragging ? '0 0 40px rgba(225, 29, 72, 0.8)' : '0 0 25px rgba(225, 29, 72, 0.4)',
+              opacity: 0.95,
+              transition: 'font-size 0.05s linear, letter-spacing 0.05s linear'
+            }}
+          >
+            HACKATHON
+          </div>
+        </div>
+      </div>
+
+      {/* Interactive Draggable Split Divider */}
+      <div 
+        className="d-none d-lg-flex position-relative align-items-center justify-content-center h-100"
+        onMouseDown={handleMouseDown}
+        title="Drag to resize panels"
+        style={{ 
+          width: '14px',
+          marginLeft: '-7px',
+          marginRight: '-7px',
+          zIndex: 50,
+          cursor: 'col-resize',
+          userSelect: 'none'
+        }}
+      >
+        <div 
+          className="h-100"
+          style={{ 
+            width: isDragging ? '4px' : '2px',
+            backgroundColor: isDragging ? '#e11d48' : 'rgba(0, 0, 0, 0.15)',
+            boxShadow: isDragging ? '0 0 12px rgba(225, 29, 72, 0.9)' : 'none',
+            transition: 'width 0.15s, background-color 0.15s'
+          }}
+        />
+        {/* Drag Pill Icon */}
+        <div 
+          className="position-absolute rounded-pill d-flex align-items-center justify-content-center shadow-sm"
+          style={{ 
+            width: '20px', 
+            height: '40px', 
+            border: '1px solid rgba(255, 255, 255, 0.25)',
+            fontSize: '0.7rem',
+            color: '#ffffff',
+            backgroundColor: isDragging ? '#e11d48' : '#0f172a',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.25)',
+            cursor: 'col-resize'
+          }}
+        >
+          <span style={{ transform: 'rotate(90deg)', fontSize: '0.8rem', fontWeight: 'bold', lineHeight: 1 }}>:::</span>
         </div>
       </div>
 
       {/* Right Column: Login Form */}
-      <div className="col-12 col-lg-6 d-flex flex-column justify-content-center px-4 px-md-5">
+      <div className="col-12 flex-grow-1 d-flex flex-column justify-content-center px-4 px-md-5" style={{ width: `${100 - leftWidth}%` }}>
         <div className="mx-auto w-100" style={{ maxWidth: '420px' }}>
           
           <div className="text-center mb-5 d-lg-none">
