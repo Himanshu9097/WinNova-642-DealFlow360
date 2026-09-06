@@ -12,6 +12,8 @@ const app = express();
 app.use(cors({ origin: [process.env.CLIENT_URL || 'http://localhost:5175', 'http://localhost:5176', 'http://localhost:5177'] }));
 app.use(express.json());
 
+const { startScheduler } = require('./utils/recurringBillingEngine');
+
 // Routes
 app.use('/api/auth', require('./features/routes/authRoutes'));
 app.use('/api/users', require('./features/routes/userRoutes'));
@@ -26,6 +28,11 @@ app.use('/api/company', require('./features/routes/companyRoutes'));
 app.use('/api/products', require('./features/routes/productRoutes'));
 app.use('/api/b2b', require('./features/routes/b2bRoutes'));
 app.use('/api/chat', require('./features/routes/chatRoutes'));
+app.use('/api/subscriptions', require('./features/routes/subscriptionRoutes'));
+
+// Start Automated Recurring Billing Scheduler
+startScheduler();
+
 // Basic Route
 app.get('/', (req, res) => {
   res.send('DealFlow360 API is running...');
