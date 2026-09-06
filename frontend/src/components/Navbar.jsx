@@ -1,14 +1,15 @@
 import { useAuth } from '@/context/AuthContext';
 import { useLocation, Link } from 'react-router-dom';
+import ThemeToggle from './ThemeToggle';
 
 export default function Navbar() {
   const { user, company, logout } = useAuth();
   const location = useLocation();
   const pathname = location.pathname;
-  const isAuthPage = pathname === '/login' || pathname === '/register';
+  const isAuthPage = pathname === '/login' || pathname === '/register' || pathname === '/forgot-password' || pathname === '/reset-password';
   const isPublicPortal = pathname.startsWith('/customer/quote/');
   
-  if (isAuthPage || !user || isPublicPortal) return null;
+  if (isAuthPage || !user || isPublicPortal) return <ThemeToggle floating />;
 
   // Customer Portal Navbar
   if (user.role === 'CUSTOMER') {
@@ -23,6 +24,7 @@ export default function Navbar() {
               <li className="nav-item"><Link className="nav-link" to="/b2b/dashboard">Dashboard</Link></li>
             </ul>
             <div className="d-flex align-items-center">
+              <ThemeToggle className="me-3" />
               <div className="text-end me-3">
                 <div className="fw-bold text-dark lh-1">{user.name}</div>
                 <small className="text-muted" style={{fontSize: '0.75rem'}}>{company?.name} • Customer</small>
@@ -90,6 +92,7 @@ export default function Navbar() {
           </ul>
           
           <div className="d-flex align-items-center">
+            <ThemeToggle className="me-3" />
             <div className="text-end me-3">
               <div className="fw-bold text-dark lh-1">{user.name}</div>
               <small className="text-muted" style={{fontSize: '0.75rem'}}>{company?.name} • {user.role.replace('_', ' ')}</small>
