@@ -2,6 +2,7 @@ import SkeletonLoader from '@/components/SkeletonLoader';
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { toast } from 'react-toastify';
 import QuotationIntelligencePanel from '@/components/QuotationIntelligencePanel';
 import { getQuotation, updateQuotation } from '@/services/quotationService';
 
@@ -107,12 +108,7 @@ export default function EditQuotation() {
 
   const handleSave = async () => {
     if (lines.length === 0) {
-      alert('Please add at least one product.');
-      return;
-    }
-    const maxAllowedByProducts = Math.min(...lines.map(l => l.maxDiscount !== undefined ? l.maxDiscount : 100));
-    if (discountPct > maxAllowedByProducts) {
-      alert(`Discount (${discountPct}%) exceeds maximum allowed by selected products (${maxAllowedByProducts}%).`);
+      toast.warning('Please add at least one product.');
       return;
     }
     
@@ -123,15 +119,20 @@ export default function EditQuotation() {
         discountPct,
         marginPct: 15,
         riskScore: intelligenceData.riskScore,
-        lines: lines.map(l => ({...l, lineTotal: l.quantity * l.unitPrice})),
+        lines: lines.map(l => ({
+          ...l, 
+          name: l.name || 'Product',
+          lineTotal: l.lineTotal || (l.quantity * l.unitPrice * (1 - (l.discountPct || 0) / 100))
+        })),
         totals,
         compliance: formatType === 'Technical + Commercial' ? compliance : [],
         approvalState: intelligenceData.approvalState
       });
+      toast.success('Quotation updated successfully!');
       navigate(`/quotations/${params.id}`);
     } catch (err) {
       console.error(err);
-      alert('Error updating quotation');
+      toast.error('Error updating quotation');
     }
   };
 

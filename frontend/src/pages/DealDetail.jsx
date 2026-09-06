@@ -5,27 +5,32 @@ import { deleteDeal, getDeal } from '@/services/dealService';
 import { getQuotations } from '@/services/quotationService';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from 'react-toastify';
+import ConfirmModal from '@/components/ConfirmModal';
 
 export default function DealDetail() {
   const params = useParams();
   const navigate = useNavigate();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const { user } = useAuth();
 
   const userRole = user?.role;
   const canDelete = ['COMPANY_ADMIN', 'SALES_MANAGER'].includes(userRole);
 
-  const handleDelete = async () => {
-    if (window.confirm('Are you sure you want to delete this deal? All associated requirements and quotations will also be deleted.')) {
-      try {
-        await deleteDeal(params.id);
-        toast.success('Deal deleted successfully!');
-        navigate('/deals');
-      } catch (err) {
-        console.error(err);
-        toast.error('Failed to delete deal.');
-      }
+  const confirmDelete = async () => {
+    setDeleting(true);
+    try {
+      await deleteDeal(params.id);
+      toast.success('Deal deleted successfully!');
+      navigate('/deals');
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to delete deal.');
+    } finally {
+      setDeleting(false);
+      setShowDeleteModal(false);
     }
   };
 
@@ -72,7 +77,7 @@ export default function DealDetail() {
               <button 
                 className="btn btn-outline-danger me-3 d-flex align-items-center justify-content-center shadow-sm" 
                 style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem', fontWeight: 'bold', borderRadius: '4px', height: '28px', border: '1px solid #dc3545' }}
-                onClick={handleDelete}
+                onClick={() => setShowDeleteModal(true)}
               >
                 <i className="fa fa-trash me-2"></i> Delete Deal
               </button>
@@ -254,6 +259,16 @@ export default function DealDetail() {
 
           </div>
         </div>
+
+        <ConfirmModal 
+          isOpen={showDeleteModal}
+          title={`Delete Deal ${deal.title || ''}?`}
+          message="Are you sure you want to delete this deal? All associated requirements and quotations will also be permanently deleted."
+          confirmText="Delete Deal"
+          loading={deleting}
+          onConfirm={confirmDelete}
+          onClose={() => setShowDeleteModal(false)}
+        />
       </div>
     </ProtectedRoute>
   );

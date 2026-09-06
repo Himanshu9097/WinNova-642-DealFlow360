@@ -25,6 +25,7 @@ app.use('/api/customers', require('./features/routes/customerRoutes'));
 app.use('/api/company', require('./features/routes/companyRoutes'));
 app.use('/api/products', require('./features/routes/productRoutes'));
 app.use('/api/b2b', require('./features/routes/b2bRoutes'));
+app.use('/api/chat', require('./features/routes/chatRoutes'));
 // Basic Route
 app.get('/', (req, res) => {
   res.send('DealFlow360 API is running...');

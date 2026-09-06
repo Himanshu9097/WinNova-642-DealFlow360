@@ -1,4 +1,5 @@
 const Inventory = require('../models/Inventory');
+const mongoose = require('mongoose');
 
 exports.calculateRisk = async (companyId, lines, discountPct, maxAllowedDiscount, netTotal) => {
   let riskScore = 10; // Base risk
@@ -15,14 +16,14 @@ exports.calculateRisk = async (companyId, lines, discountPct, maxAllowedDiscount
   // 2. Fulfillment / Inventory Penalty
   let hasInventoryRisk = false;
   for (const line of lines) {
-    if (!line.productId) continue;
+    if (!line.productId || !mongoose.Types.ObjectId.isValid(line.productId)) continue;
     // Sum all available stock for this product across all company warehouses
     const stockRecords = await Inventory.find({ companyId, productId: line.productId });
     const totalAvailable = stockRecords.reduce((sum, record) => sum + record.availableStock, 0);
     
     if (line.quantity > totalAvailable) {
       hasInventoryRisk = true;
-      riskFactors.push(`Insufficient stock: Quoted ${line.quantity}x of ${line.productId || 'product'} (Only ${totalAvailable} available)`);
+      riskFactors.push(`Insufficient stock: Quoted ${line.quantity}x of ${line.name || 'product'} (Only ${totalAvailable} available)`);
     }
   }
 

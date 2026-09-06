@@ -158,29 +158,51 @@ function CreateQuotationInner() {
       return;
     }
     
-    // We no longer block saving if discount exceeds max limit.
-    // It will just trigger 'Approval Required' state.
+    // Filter out invalid/empty lines
+    const validLines = lines.filter(l => l.name || l.productId);
+    if (validLines.length === 0) {
+      toast.warning('Please select at least one valid product.');
+      return;
+    }
     
     try {
-      const newQ = await createQuotation({
-        dealId,
+      const payload = {
+        dealId: dealId || undefined,
+        customerId: deal?.customerId?._id || deal?.customerId || undefined,
         formatType,
         totalValue: totals.net,
         discountPct: totals.overallDiscountPct,
         marginPct: totals.marginPct,
         riskScore: intelligenceData.riskScore,
-        lines: lines.map(l => ({...l, lineTotal: l.quantity * l.unitPrice})),
+        lines: validLines.map(l => {
+          const gross = l.quantity * l.unitPrice;
+          const disc = l.discountPct ? gross * (l.discountPct / 100) : 0;
+          return {
+            productId: l.productId || undefined,
+            name: l.name || 'Custom Item',
+            quantity: l.quantity,
+            unitPrice: l.unitPrice,
+            discountPct: l.discountPct || 0,
+            cost: l.cost || 0,
+            lineTotal: gross - disc,
+            margin: (gross - disc) - (l.cost * l.quantity || 0)
+          };
+        }),
         totals,
         compliance: formatType === 'Technical + Commercial' ? compliance : []
-      });
+      };
+
+      const newQ = await createQuotation(payload);
       toast.success('Quotation saved successfully!');
       if (dealId) {
         navigate(`/deals/${dealId}`);
-      } else {
+      } else if (newQ && newQ._id) {
         navigate(`/quotations/${newQ._id}`);
+      } else {
+        navigate('/quotations');
       }
     } catch (err) {
-      console.error(err);
+      console.error('Save Quotation Error:', err);
       toast.error(err.message || 'Error creating quotation');
     }
   };

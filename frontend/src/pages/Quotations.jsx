@@ -1,23 +1,47 @@
 import SkeletonLoader from '@/components/SkeletonLoader';
 
 import React, { useEffect, useState } from 'react';
-import { getQuotations } from '@/services/quotationService';
+import { getQuotations, deleteQuotation } from '@/services/quotationService';
 import QuotationStatusBadge from '@/components/QuotationStatusBadge';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { Link } from 'react-router-dom';
+import { toast } from 'react-toastify';
+import ConfirmModal from '@/components/ConfirmModal';
 
 export default function QuotationsList() {
   const [quotations, setQuotations] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
-  useEffect(() => {
+  const fetchQuotations = () => {
     getQuotations()
       .then(data => {
         setQuotations(data);
         setLoading(false);
       })
       .catch(console.error);
+  };
+
+  useEffect(() => {
+    fetchQuotations();
   }, []);
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      await deleteQuotation(deleteTarget.id);
+      toast.success('Quotation deleted successfully!');
+      setQuotations(quotations.filter(q => q._id !== deleteTarget.id));
+      setDeleteTarget(null);
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to delete quotation');
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   if (loading) return <SkeletonLoader type='table' />;
 
@@ -96,9 +120,18 @@ export default function QuotationsList() {
                         </td>
                         <td><QuotationStatusBadge status={quote.status} /></td>
                         <td>
-                          <Link to={`/quotations/${quote._id}`} className="btn btn-sm btn-outline-primary">
-                            View
-                          </Link>
+                          <div className="d-flex gap-2">
+                            <Link to={`/quotations/${quote._id}`} className="btn btn-sm btn-outline-primary">
+                              View
+                            </Link>
+                            <button 
+                              className="btn btn-sm btn-outline-danger" 
+                              title="Delete Quotation"
+                              onClick={() => setDeleteTarget({ id: quote._id, quoteNumber: quote.quoteNumber })}
+                            >
+                              <i className="fa fa-trash me-1"></i> Delete
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))
@@ -108,6 +141,16 @@ export default function QuotationsList() {
             </div>
           </div>
         </div>
+
+        <ConfirmModal 
+          isOpen={Boolean(deleteTarget)}
+          title={`Delete Quotation ${deleteTarget?.quoteNumber || ''}?`}
+          message="Are you sure you want to delete this quotation permanently? This action cannot be undone."
+          confirmText="Delete Permanently"
+          loading={deleting}
+          onConfirm={confirmDelete}
+          onClose={() => setDeleteTarget(null)}
+        />
       </div>
     </ProtectedRoute>
   );

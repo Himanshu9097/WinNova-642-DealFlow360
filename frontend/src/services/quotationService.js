@@ -3,9 +3,9 @@ import { getAuthHeaders } from '@/utils/auth';
 const API_URL = 'http://127.0.0.1:5006/api';
 
 export const getQuotations = async () => {
-  // Assuming there's a GET /api/quotations route. Since there isn't one for getting ALL quotes in our backend, we only fetch quote by ID normally.
-  // For the deals view to work, we'll return an empty array if requested, since deals view gets quotations via dealRoutes.js GET /api/deals/:id
-  return []; 
+  const res = await fetch(`${API_URL}/quotations`, { headers: getAuthHeaders() });
+  if (!res.ok) throw new Error('Failed to fetch quotations');
+  return res.json();
 };
 
 export const getQuotation = async (id) => {
@@ -46,6 +46,15 @@ export const updateQuotation = async (id, data) => {
     body: JSON.stringify(data)
   });
   if (!res.ok) throw new Error('Failed to update quotation');
+  return res.json();
+};
+
+export const deleteQuotation = async (id) => {
+  const res = await fetch(`${API_URL}/quotations/${id}`, {
+    method: 'DELETE',
+    headers: getAuthHeaders()
+  });
+  if (!res.ok) throw new Error('Failed to delete quotation');
   return res.json();
 };
 
