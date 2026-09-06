@@ -31,6 +31,8 @@ router.get('/:id', async (req, res) => {
   }
 });
 
+const Subscription = require('../models/Subscription');
+
 router.post('/:id/pay', requireRole(['COMPANY_ADMIN', 'FINANCE']), async (req, res) => {
   try {
     const { amount, method, reference, notes } = req.body;
@@ -67,6 +69,46 @@ router.post('/:id/pay', requireRole(['COMPANY_ADMIN', 'FINANCE']), async (req, r
           { stage: 'Completed', billingStatus: 'Paid' }
         );
       }
+
+      // Auto-register recurring Subscription for Monthly/Annual items
+      try {
+        const hasRecurringItems = (invoice.items || []).some(item => 
+          item.description?.toLowerCase().includes('annual') ||
+          item.description?.toLowerCase().includes('monthly') ||
+          item.description?.toLowerCase().includes('subscription')
+        );
+
+        if (hasRecurringItems || invoice.notes?.toLowerCase().includes('recurring')) {
+          const isAnnual = (invoice.items || []).some(i => i.description?.toLowerCase().includes('annual')) || invoice.notes?.toLowerCase().includes('annual');
+          const billingType = isAnnual ? 'Annual Recurring' : 'Monthly Recurring';
+          
+          const nextDate = new Date();
+          if (isAnnual) {
+            nextDate.setFullYear(nextDate.getFullYear() + 1);
+          } else {
+            nextDate.setMonth(nextDate.getMonth() + 1);
+          }
+
+          const firstItem = invoice.items?.[0]?.description || 'Enterprise Solution Subscription';
+
+          await Subscription.create({
+            companyId: invoice.companyId,
+            customerId: invoice.customerId,
+            dealId: invoice.dealId,
+            productName: firstItem,
+            billingType,
+            amount: invoice.subtotal || invoice.total,
+            startDate: new Date(),
+            nextBillingDate: nextDate,
+            status: 'Active',
+            lastInvoicedDate: new Date(),
+            items: invoice.items
+          });
+        }
+      } catch (subErr) {
+        console.error('Error auto-creating subscription:', subErr);
+      }
+
     } else if (invoice.status === 'Draft') {
       invoice.status = 'Pending';
     }

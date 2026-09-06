@@ -8,15 +8,27 @@ import {
   sendPaymentReminder, 
   createInvoice 
 } from '@/services/billingService';
+import { getSubscriptions, runRecurringBillingNow } from '@/services/subscriptionService';
 
 export default function BillingPage() {
   const [invoices, setInvoices] = useState([]);
   const [metrics, setMetrics] = useState(null);
+  const [subscriptions, setSubscriptions] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('all'); // all, Pending, Overdue, Paid, ledger
+  const [runningBillingEngine, setRunningBillingEngine] = useState(false);
+  const [activeTab, setActiveTab] = useState('all'); // all, Pending, Overdue, Paid, ledger, subscriptions
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [notification, setNotification] = useState(null);
+
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
+  // Auto-reset page to 1 when search query, filter, or active tab changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, statusFilter, activeTab, pageSize]);
 
   // Modals state
   const [selectedInvoice, setSelectedInvoice] = useState(null);
@@ -55,16 +67,31 @@ export default function BillingPage() {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [invData, metricData] = await Promise.all([
+      const [invData, metricData, subData] = await Promise.all([
         getInvoices(),
-        getBillingSummaryMetrics()
+        getBillingSummaryMetrics(),
+        getSubscriptions().catch(() => [])
       ]);
       setInvoices(invData);
       setMetrics(metricData);
+      setSubscriptions(subData || []);
     } catch (err) {
       console.error('Error loading billing data:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleTriggerRecurringRun = async () => {
+    setRunningBillingEngine(true);
+    try {
+      const res = await runRecurringBillingNow();
+      triggerNotification(res.message || 'Automated recurring billing run completed!', 'success');
+      await loadData();
+    } catch (err) {
+      alert('Failed to execute recurring billing run');
+    } finally {
+      setRunningBillingEngine(false);
     }
   };
 
@@ -121,6 +148,52 @@ export default function BillingPage() {
     });
     return list.sort((a, b) => new Date(b.date) - new Date(a.date));
   }, [invoices]);
+
+  // Pagination calculations for filtered invoices
+  const totalFilteredInvoices = filteredInvoices.length;
+  const totalInvoicePages = Math.ceil(totalFilteredInvoices / pageSize) || 1;
+  const invoiceStartIdx = (currentPage - 1) * pageSize;
+  const invoiceEndIdx = Math.min(invoiceStartIdx + pageSize, totalFilteredInvoices);
+
+  const paginatedInvoices = useMemo(() => {
+    return filteredInvoices.slice(invoiceStartIdx, invoiceStartIdx + pageSize);
+  }, [filteredInvoices, invoiceStartIdx, pageSize]);
+
+  // Filtered payments list for ledger search
+  const filteredPayments = useMemo(() => {
+    return allPayments.filter(pay => {
+      if (searchQuery.trim() !== '') {
+        const query = searchQuery.toLowerCase();
+        const matchPaymentNo = pay.paymentNumber?.toLowerCase().includes(query);
+        const matchInvoiceNo = pay.invoiceNumber?.toLowerCase().includes(query);
+        const matchCustomer = pay.customerName?.toLowerCase().includes(query);
+        const matchRef = pay.reference?.toLowerCase().includes(query);
+        const matchMethod = pay.method?.toLowerCase().includes(query);
+        if (!matchPaymentNo && !matchInvoiceNo && !matchCustomer && !matchRef && !matchMethod) {
+          return false;
+        }
+      }
+      return true;
+    });
+  }, [allPayments, searchQuery]);
+
+  // Pagination calculations for payment ledger
+  const totalFilteredPayments = filteredPayments.length;
+  const totalPaymentPages = Math.ceil(totalFilteredPayments / pageSize) || 1;
+  const paymentStartIdx = (currentPage - 1) * pageSize;
+  const paymentEndIdx = Math.min(paymentStartIdx + pageSize, totalFilteredPayments);
+
+  const paginatedPayments = useMemo(() => {
+    return filteredPayments.slice(paymentStartIdx, paymentStartIdx + pageSize);
+  }, [filteredPayments, paymentStartIdx, pageSize]);
+
+  // Auto-correct currentPage if out of bounds after filter/data updates
+  useEffect(() => {
+    const maxPages = activeTab === 'ledger' ? totalPaymentPages : totalInvoicePages;
+    if (currentPage > maxPages && maxPages > 0) {
+      setCurrentPage(maxPages);
+    }
+  }, [currentPage, totalInvoicePages, totalPaymentPages, activeTab]);
 
   // Open Record Payment Modal
   const handleOpenPaymentModal = (invoice) => {
@@ -446,10 +519,17 @@ export default function BillingPage() {
                   >
                     Payment Ledger <span className="badge bg-white text-dark ms-1 rounded-pill">{allPayments.length}</span>
                   </button>
+                  <button 
+                    onClick={() => setActiveTab('subscriptions')}
+                    className={`nav-link px-3 py-2 rounded-pill fw-semibold ${activeTab === 'subscriptions' ? 'active' : 'text-secondary bg-light'}`}
+                    style={activeTab === 'subscriptions' ? { backgroundColor: '#0d6efd' } : {}}
+                  >
+                    Auto Subscriptions <span className="badge bg-white text-primary ms-1 rounded-pill">{subscriptions.length}</span>
+                  </button>
                 </div>
 
                 {/* Search & Filter Controls */}
-                {activeTab !== 'ledger' && (
+                {activeTab !== 'ledger' && activeTab !== 'subscriptions' && (
                   <div className="d-flex align-items-center gap-2 flex-wrap">
                     <div className="input-group shadow-sm" style={{ maxWidth: '280px' }}>
                       <span className="input-group-text bg-white border-end-0 text-muted">🔍</span>
@@ -489,6 +569,70 @@ export default function BillingPage() {
               <div className="spinner-border text-danger mx-auto mb-3" role="status"></div>
               <p className="text-muted">Loading billing ledgers and invoices...</p>
             </div>
+          ) : activeTab === 'subscriptions' ? (
+            /* TAB: RECURRING SUBSCRIPTIONS */
+            <div className="card border-0 shadow-sm rounded-3">
+              <div className="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+                <div>
+                  <h5 className="mb-0 fw-bold text-dark">Automated Recurring Customer Subscriptions</h5>
+                  <small className="text-muted">Monthly and Annual auto-renewing customer licenses & contracts</small>
+                </div>
+                <button 
+                  className="btn btn-primary btn-sm fw-bold shadow-sm px-3"
+                  onClick={handleTriggerRecurringRun}
+                  disabled={runningBillingEngine}
+                  style={{ backgroundColor: '#0d6efd', borderColor: '#0d6efd' }}
+                >
+                  {runningBillingEngine ? 'Running Engine...' : '⚡ Run Recurring Billing Engine Now'}
+                </button>
+              </div>
+              <div className="table-responsive">
+                <table className="table table-hover align-middle mb-0">
+                  <thead className="table-light text-muted small text-uppercase">
+                    <tr>
+                      <th className="ps-4">Customer</th>
+                      <th>Plan / Product</th>
+                      <th>Billing Cycle</th>
+                      <th>Amount</th>
+                      <th>Next Renewal Date</th>
+                      <th className="text-center">Invoices Issued</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {subscriptions.length === 0 ? (
+                      <tr>
+                        <td colSpan={7} className="text-center py-5 text-muted">
+                          No active customer subscriptions yet. Settle an invoice containing Monthly or Annual products to auto-register!
+                        </td>
+                      </tr>
+                    ) : (
+                      subscriptions.map(sub => (
+                        <tr key={sub._id}>
+                          <td className="ps-4 fw-bold text-dark">{sub.customerId?.name || 'Customer'}</td>
+                          <td className="fw-semibold">{sub.productName}</td>
+                          <td>
+                            <span className="badge bg-primary-subtle text-primary border border-primary px-2.5 py-1 rounded-pill">
+                              {sub.billingType}
+                            </span>
+                          </td>
+                          <td className="fw-bold text-success">₹{(sub.amount || 0).toLocaleString()}</td>
+                          <td className="fw-semibold text-dark">
+                            {new Date(sub.nextBillingDate).toLocaleDateString()}
+                          </td>
+                          <td className="text-center fw-bold">{sub.totalInvoicesIssued || 1}</td>
+                          <td>
+                            <span className="badge bg-success-subtle text-success border border-success px-2.5 py-1 rounded-pill fw-semibold">
+                              ✓ {sub.status || 'Active'}
+                            </span>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           ) : activeTab === 'ledger' ? (
             /* TAB: PAYMENT LEDGER */
             <div className="card border-0 shadow-sm rounded-3">
@@ -511,12 +655,12 @@ export default function BillingPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {allPayments.length === 0 ? (
+                    {paginatedPayments.length === 0 ? (
                       <tr>
                         <td colSpan={8} className="text-center py-5 text-muted">No recorded payments found in ledger.</td>
                       </tr>
                     ) : (
-                      allPayments.map(payment => (
+                      paginatedPayments.map(payment => (
                         <tr key={payment._id}>
                           <td className="ps-4 fw-bold text-dark">{payment.paymentNumber}</td>
                           <td className="text-muted">{payment.date}</td>
@@ -540,6 +684,86 @@ export default function BillingPage() {
                   </tbody>
                 </table>
               </div>
+
+              {/* Pagination Bar for Payment Ledger */}
+              {totalFilteredPayments > 0 && (
+                <div className="card-footer bg-white border-top py-3 px-4 d-flex flex-column flex-md-row justify-content-between align-items-center gap-3">
+                  <div className="text-muted small">
+                    Showing <strong>{paymentStartIdx + 1}</strong> to <strong>{paymentEndIdx}</strong> of <strong>{totalFilteredPayments}</strong> payments
+                  </div>
+
+                  <div className="d-flex align-items-center gap-3 flex-wrap">
+                    <div className="d-flex align-items-center gap-2">
+                      <label className="text-muted small mb-0">Per Page:</label>
+                      <select 
+                        className="form-select form-select-sm shadow-none" 
+                        style={{ width: '80px' }}
+                        value={pageSize}
+                        onChange={(e) => setPageSize(Number(e.target.value))}
+                      >
+                        <option value={5}>5</option>
+                        <option value={10}>10</option>
+                        <option value={20}>20</option>
+                        <option value={50}>50</option>
+                      </select>
+                    </div>
+
+                    <div className="btn-group btn-group-sm">
+                      <button 
+                        type="button"
+                        className="btn btn-outline-secondary" 
+                        onClick={(e) => { e.preventDefault(); setCurrentPage(1); }} 
+                        disabled={currentPage <= 1}
+                      >
+                        «
+                      </button>
+                      <button 
+                        type="button"
+                        className="btn btn-outline-secondary" 
+                        onClick={(e) => { e.preventDefault(); setCurrentPage(prev => Math.max(prev - 1, 1)); }} 
+                        disabled={currentPage <= 1}
+                      >
+                        ‹ Prev
+                      </button>
+
+                      {Array.from({ length: totalPaymentPages }, (_, idx) => idx + 1)
+                        .filter(page => page === 1 || page === totalPaymentPages || Math.abs(page - currentPage) <= 1)
+                        .map((page, idx, arr) => (
+                          <React.Fragment key={page}>
+                            {idx > 0 && arr[idx - 1] !== page - 1 && (
+                              <button type="button" className="btn btn-outline-secondary" disabled>...</button>
+                            )}
+                            <button 
+                              type="button"
+                              className={`btn ${currentPage === page ? 'btn-primary text-white fw-bold' : 'btn-outline-secondary'}`}
+                              style={currentPage === page ? { backgroundColor: '#D6536D', borderColor: '#D6536D' } : {}}
+                              onClick={(e) => { e.preventDefault(); setCurrentPage(page); }}
+                            >
+                              {page}
+                            </button>
+                          </React.Fragment>
+                        ))}
+
+                      <button 
+                        type="button"
+                        className="btn btn-outline-secondary" 
+                        onClick={(e) => { e.preventDefault(); setCurrentPage(prev => Math.min(prev + 1, totalPaymentPages)); }} 
+                        disabled={currentPage >= totalPaymentPages}
+                      >
+                        Next ›
+                      </button>
+                      <button 
+                        type="button"
+                        className="btn btn-outline-secondary" 
+                        onClick={(e) => { e.preventDefault(); setCurrentPage(totalPaymentPages); }} 
+                        disabled={currentPage >= totalPaymentPages}
+                      >
+                        »
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
             /* TAB: INVOICES TABLE */
@@ -558,7 +782,7 @@ export default function BillingPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredInvoices.length === 0 ? (
+                    {paginatedInvoices.length === 0 ? (
                       <tr>
                         <td colSpan={7} className="text-center py-5">
                           <div className="text-muted">
@@ -569,7 +793,7 @@ export default function BillingPage() {
                         </td>
                       </tr>
                     ) : (
-                      filteredInvoices.map(inv => {
+                      paginatedInvoices.map(inv => {
                         const isOverdue = inv.status === 'Overdue';
                         const percentPaid = inv.total > 0 ? Math.round((inv.paidAmount / inv.total) * 100) : 0;
 
@@ -676,6 +900,86 @@ export default function BillingPage() {
                   </tbody>
                 </table>
               </div>
+
+              {/* Pagination Bar for Invoices */}
+              {totalFilteredInvoices > 0 && (
+                <div className="card-footer bg-white border-top py-3 px-4 d-flex flex-column flex-md-row justify-content-between align-items-center gap-3">
+                  <div className="text-muted small">
+                    Showing <strong>{invoiceStartIdx + 1}</strong> to <strong>{invoiceEndIdx}</strong> of <strong>{totalFilteredInvoices}</strong> invoices
+                  </div>
+
+                  <div className="d-flex align-items-center gap-3 flex-wrap">
+                    <div className="d-flex align-items-center gap-2">
+                      <label className="text-muted small mb-0">Per Page:</label>
+                      <select 
+                        className="form-select form-select-sm shadow-none" 
+                        style={{ width: '80px' }}
+                        value={pageSize}
+                        onChange={(e) => setPageSize(Number(e.target.value))}
+                      >
+                        <option value={5}>5</option>
+                        <option value={10}>10</option>
+                        <option value={20}>20</option>
+                        <option value={50}>50</option>
+                      </select>
+                    </div>
+
+                    <div className="btn-group btn-group-sm">
+                      <button 
+                        type="button"
+                        className="btn btn-outline-secondary" 
+                        onClick={(e) => { e.preventDefault(); setCurrentPage(1); }}
+                        disabled={currentPage <= 1}
+                      >
+                        «
+                      </button>
+                      <button 
+                        type="button"
+                        className="btn btn-outline-secondary" 
+                        onClick={(e) => { e.preventDefault(); setCurrentPage(prev => Math.max(prev - 1, 1)); }}
+                        disabled={currentPage <= 1}
+                      >
+                        ‹ Prev
+                      </button>
+
+                      {Array.from({ length: totalInvoicePages }, (_, idx) => idx + 1)
+                        .filter(page => page === 1 || page === totalInvoicePages || Math.abs(page - currentPage) <= 1)
+                        .map((page, idx, arr) => (
+                          <React.Fragment key={page}>
+                            {idx > 0 && arr[idx - 1] !== page - 1 && (
+                              <button type="button" className="btn btn-outline-secondary" disabled>...</button>
+                            )}
+                            <button 
+                              type="button"
+                              className={`btn ${currentPage === page ? 'btn-primary text-white fw-bold' : 'btn-outline-secondary'}`}
+                              style={currentPage === page ? { backgroundColor: '#D6536D', borderColor: '#D6536D' } : {}}
+                              onClick={(e) => { e.preventDefault(); setCurrentPage(page); }}
+                            >
+                              {page}
+                            </button>
+                          </React.Fragment>
+                        ))}
+
+                      <button 
+                        type="button"
+                        className="btn btn-outline-secondary" 
+                        onClick={(e) => { e.preventDefault(); setCurrentPage(prev => Math.min(prev + 1, totalInvoicePages)); }}
+                        disabled={currentPage >= totalInvoicePages}
+                      >
+                        Next ›
+                      </button>
+                      <button 
+                        type="button"
+                        className="btn btn-outline-secondary" 
+                        onClick={(e) => { e.preventDefault(); setCurrentPage(totalInvoicePages); }}
+                        disabled={currentPage >= totalInvoicePages}
+                      >
+                        »
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -686,12 +990,12 @@ export default function BillingPage() {
       {/* MODAL: VIEW & PRINT INVOICE                               */}
       {/* ========================================================= */}
       {showViewModal && selectedInvoice && (
-        <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', zIndex: 1055 }} tabIndex="-1">
+        <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', zIndex: 1055, overflowY: 'auto' }} tabIndex="-1">
           <div className="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable" style={{ maxWidth: '850px', maxHeight: '90vh' }}>
-            <div className="modal-content shadow-lg border-0">
+            <div className="modal-content shadow-lg border-0" style={{ maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}>
               
               {/* Modal Header */}
-              <div className="modal-header bg-light border-bottom d-print-none">
+              <div className="modal-header bg-light border-bottom d-print-none flex-shrink-0">
                 <div className="d-flex align-items-center gap-2">
                   <h5 className="modal-title fw-bold text-dark">Invoice: {selectedInvoice.invoiceNumber}</h5>
                   {renderStatusBadge(selectedInvoice.status)}
@@ -700,7 +1004,7 @@ export default function BillingPage() {
               </div>
 
               {/* Printable Invoice Body */}
-              <div className="modal-body p-4 p-md-5" id="printable-invoice">
+              <div className="modal-body p-4 p-md-5 overflow-y-auto" id="printable-invoice" style={{ overflowY: 'auto', maxHeight: 'calc(90vh - 130px)' }}>
                 {/* Brand & Invoice Meta */}
                 <div className="d-flex justify-content-between align-items-start border-bottom pb-4 mb-4">
                   <div>
@@ -841,7 +1145,7 @@ export default function BillingPage() {
               </div>
 
               {/* Modal Footer */}
-              <div className="modal-footer bg-light d-print-none">
+              <div className="modal-footer bg-light d-print-none flex-shrink-0">
                 <button type="button" className="btn btn-outline-secondary" onClick={() => setShowViewModal(false)}>
                   Close
                 </button>
@@ -875,11 +1179,11 @@ export default function BillingPage() {
       {/* MODAL: RECORD PAYMENT                                    */}
       {/* ========================================================= */}
       {showPaymentModal && selectedInvoice && (
-        <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', zIndex: 1055 }} tabIndex="-1">
+        <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', zIndex: 1055, overflowY: 'auto' }} tabIndex="-1">
           <div className="modal-dialog modal-dialog-centered modal-dialog-scrollable" style={{ maxWidth: '540px', maxHeight: '90vh' }}>
-            <div className="modal-content shadow-lg border-0">
-              <form onSubmit={handleSubmitPayment}>
-                <div className="modal-header bg-light border-bottom">
+            <div className="modal-content shadow-lg border-0" style={{ maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}>
+              <form onSubmit={handleSubmitPayment} className="d-flex flex-column h-100 overflow-hidden" style={{ maxHeight: '90vh' }}>
+                <div className="modal-header bg-light border-bottom flex-shrink-0">
                   <div>
                     <h5 className="modal-title fw-bold text-dark">Record Payment Receipt</h5>
                     <span className="text-muted small">Invoice: {selectedInvoice.invoiceNumber} ({selectedInvoice.customerId?.name})</span>
@@ -887,7 +1191,7 @@ export default function BillingPage() {
                   <button type="button" className="btn-close" onClick={() => setShowPaymentModal(false)}></button>
                 </div>
 
-                <div className="modal-body p-4">
+                <div className="modal-body p-4 overflow-y-auto" style={{ overflowY: 'auto', maxHeight: 'calc(90vh - 130px)' }}>
                   {/* Balance Summary Box */}
                   <div className="bg-light p-3 rounded-3 border mb-3 d-flex justify-content-between align-items-center">
                     <div>
@@ -971,7 +1275,7 @@ export default function BillingPage() {
                   </div>
                 </div>
 
-                <div className="modal-footer bg-light">
+                <div className="modal-footer bg-light flex-shrink-0">
                   <button type="button" className="btn btn-outline-secondary" onClick={() => setShowPaymentModal(false)}>
                     Cancel
                   </button>
@@ -989,11 +1293,11 @@ export default function BillingPage() {
       {/* MODAL: CREATE INVOICE                                    */}
       {/* ========================================================= */}
       {showCreateModal && (
-        <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', zIndex: 1055 }} tabIndex="-1">
+        <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', zIndex: 1055, overflowY: 'auto' }} tabIndex="-1">
           <div className="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable" style={{ maxWidth: '850px', maxHeight: '90vh' }}>
-            <div className="modal-content shadow-lg border-0">
-              <form onSubmit={handleSubmitCreate}>
-                <div className="modal-header bg-light border-bottom">
+            <div className="modal-content shadow-lg border-0" style={{ maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}>
+              <form onSubmit={handleSubmitCreate} className="d-flex flex-column h-100 overflow-hidden" style={{ maxHeight: '90vh' }}>
+                <div className="modal-header bg-light border-bottom flex-shrink-0">
                   <div>
                     <h5 className="modal-title fw-bold text-dark">Create New Customer Invoice</h5>
                     <span className="text-muted small">Generate tax invoice for billed deal or commercial contract</span>
@@ -1001,7 +1305,7 @@ export default function BillingPage() {
                   <button type="button" className="btn-close" onClick={() => setShowCreateModal(false)}></button>
                 </div>
 
-                <div className="modal-body p-4">
+                <div className="modal-body p-4 overflow-y-auto" style={{ overflowY: 'auto', maxHeight: 'calc(90vh - 130px)' }}>
                   {/* Customer Information */}
                   <h6 className="fw-bold text-secondary text-uppercase small mb-3">1. Customer Information</h6>
                   <div className="row g-3 mb-4">
@@ -1213,7 +1517,7 @@ export default function BillingPage() {
 
                 </div>
 
-                <div className="modal-footer bg-light">
+                <div className="modal-footer bg-light flex-shrink-0">
                   <button type="button" className="btn btn-outline-secondary" onClick={() => setShowCreateModal(false)}>
                     Cancel
                   </button>
