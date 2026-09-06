@@ -143,7 +143,7 @@ export default function BillingPage() {
     try {
       const updated = await recordPayment(selectedInvoice._id, paymentForm);
       setShowPaymentModal(false);
-      triggerNotification(`Payment of $${Number(paymentForm.amount).toLocaleString()} successfully recorded for ${selectedInvoice.invoiceNumber}.`, 'success');
+      triggerNotification(`Payment of ₹${Number(paymentForm.amount).toLocaleString()} successfully recorded for ${selectedInvoice.invoiceNumber}.`, 'success');
       await loadData();
       if (showViewModal) {
         setSelectedInvoice(updated);
@@ -611,7 +611,7 @@ export default function BillingPage() {
                             {/* Total Amount */}
                             <td className="text-end">
                               <div className="fw-bold text-dark fs-6">
-                                ${inv.total.toLocaleString()}
+                                ₹{inv.total.toLocaleString()}
                               </div>
                               <small className="text-muted">
                                 Tax: ₹{inv.taxAmount?.toLocaleString() || 0}
@@ -686,8 +686,8 @@ export default function BillingPage() {
       {/* MODAL: VIEW & PRINT INVOICE                               */}
       {/* ========================================================= */}
       {showViewModal && selectedInvoice && (
-        <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.6)' }} tabIndex="-1">
-          <div className="modal-dialog modal-lg modal-dialog-scrollable">
+        <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', zIndex: 1055 }} tabIndex="-1">
+          <div className="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable" style={{ maxWidth: '850px', maxHeight: '90vh' }}>
             <div className="modal-content shadow-lg border-0">
               
               {/* Modal Header */}
@@ -733,7 +733,7 @@ export default function BillingPage() {
                     {selectedInvoice.quotationRef && (
                       <div className="small"><strong>Quote Ref:</strong> {selectedInvoice.quotationRef}</div>
                     )}
-                    <div className="small"><strong>Currency:</strong> {selectedInvoice.currency || 'USD'}</div>
+                    <div className="small"><strong>Currency:</strong> {selectedInvoice.currency || 'INR'}</div>
                   </div>
                 </div>
 
@@ -786,7 +786,7 @@ export default function BillingPage() {
                       <div className="d-flex justify-content-between border-top pt-2">
                         <span className="fw-bold text-dark">Balance Due:</span>
                         <span className={`fw-bold fs-5 ${selectedInvoice.balanceDue > 0 ? 'text-danger' : 'text-success'}`}>
-                          ${selectedInvoice.balanceDue?.toLocaleString()}
+                          ₹{selectedInvoice.balanceDue?.toLocaleString()}
                         </span>
                       </div>
                     </div>
@@ -875,8 +875,8 @@ export default function BillingPage() {
       {/* MODAL: RECORD PAYMENT                                    */}
       {/* ========================================================= */}
       {showPaymentModal && selectedInvoice && (
-        <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.6)' }} tabIndex="-1">
-          <div className="modal-dialog modal-dialog-centered">
+        <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', zIndex: 1055 }} tabIndex="-1">
+          <div className="modal-dialog modal-dialog-centered modal-dialog-scrollable" style={{ maxWidth: '540px', maxHeight: '90vh' }}>
             <div className="modal-content shadow-lg border-0">
               <form onSubmit={handleSubmitPayment}>
                 <div className="modal-header bg-light border-bottom">
@@ -902,7 +902,7 @@ export default function BillingPage() {
 
                   {/* Payment Amount */}
                   <div className="mb-3">
-                    <label className="form-label fw-semibold">Payment Amount ($) <span className="text-danger">*</span></label>
+                    <label className="form-label fw-semibold">Payment Amount (₹) <span className="text-danger">*</span></label>
                     <div className="input-group">
                       <span className="input-group-text">₹</span>
                       <input 
@@ -989,8 +989,8 @@ export default function BillingPage() {
       {/* MODAL: CREATE INVOICE                                    */}
       {/* ========================================================= */}
       {showCreateModal && (
-        <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.6)' }} tabIndex="-1">
-          <div className="modal-dialog modal-lg modal-dialog-scrollable">
+        <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', zIndex: 1055 }} tabIndex="-1">
+          <div className="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable" style={{ maxWidth: '850px', maxHeight: '90vh' }}>
             <div className="modal-content shadow-lg border-0">
               <form onSubmit={handleSubmitCreate}>
                 <div className="modal-header bg-light border-bottom">
@@ -1123,8 +1123,8 @@ export default function BillingPage() {
                         <tr>
                           <th>Description</th>
                           <th style={{ width: '100px' }}>Qty</th>
-                          <th style={{ width: '140px' }}>Unit Price ($)</th>
-                          <th style={{ width: '140px' }}>Line Total ($)</th>
+                          <th style={{ width: '140px' }}>Unit Price (₹)</th>
+                          <th style={{ width: '140px' }}>Line Total (₹)</th>
                           <th style={{ width: '50px' }}></th>
                         </tr>
                       </thead>
@@ -1160,7 +1160,7 @@ export default function BillingPage() {
                               />
                             </td>
                             <td className="text-end fw-bold">
-                              ${(Number(item.quantity || 0) * Number(item.unitPrice || 0)).toLocaleString()}
+                              ₹{(Number(item.quantity || 0) * Number(item.unitPrice || 0)).toLocaleString()}
                             </td>
                             <td className="text-center">
                               {createForm.items.length > 1 && (
@@ -1204,7 +1204,7 @@ export default function BillingPage() {
                         <div className="d-flex justify-content-between border-top pt-2">
                           <span className="fw-bold">Total Due:</span>
                           <span className="fw-bold fs-6" style={{ color: '#D6536D' }}>
-                            ${computedCreateTotal.toLocaleString()}
+                            ₹{computedCreateTotal.toLocaleString()}
                           </span>
                         </div>
                       </div>

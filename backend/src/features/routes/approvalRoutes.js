@@ -4,6 +4,9 @@ const Approval = require('../models/Approval');
 const Quotation = require('../models/Quotation');
 const { requireAuth, requireRole } = require('../../middleware/authMiddleware');
 
+const Customer = require('../models/Customer');
+const { sendQuotationStatusUpdateEmail } = require('../../utils/mailService');
+
 router.use(requireAuth);
 
 router.get('/', async (req, res) => {
@@ -54,6 +57,18 @@ router.post('/:id/action', requireRole(['COMPANY_ADMIN', 'SALES_MANAGER', 'FINAN
         }
         
         await quote.save();
+
+        // Send status update email to customer
+        if (quote.customerId) {
+          Customer.findById(quote.customerId).then(cust => {
+            if (cust && cust.email) {
+              const clientUrl = process.env.CLIENT_URL || 'http://localhost:5175';
+              const portalUrl = `${clientUrl}/customer/quote/${quote.customerToken}`;
+              sendQuotationStatusUpdateEmail(cust.email, cust.name, quote.quoteNumber, quote.status, portalUrl)
+                .catch(err => console.error('Failed to send status update email from approval:', err));
+            }
+          }).catch(() => {});
+        }
         
         if (action === 'APPROVE') {
           // 1. Deduct Inventory

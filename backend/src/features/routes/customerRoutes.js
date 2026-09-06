@@ -3,6 +3,9 @@ const router = express.Router();
 const Customer = require('../models/Customer');
 const { requireAuth, requireRole } = require('../../middleware/authMiddleware');
 
+const Company = require('../models/Company');
+const { sendCustomerCreatedEmail } = require('../../utils/mailService');
+
 router.use(requireAuth);
 
 // Get all customers for the company
@@ -25,6 +28,15 @@ router.post('/', requireRole(['COMPANY_ADMIN', 'SALES_MANAGER', 'SALES_REP']), a
       name, email, industry, phone, website, address, contactPerson
     });
     await customer.save();
+
+    // Send customer created email asynchronously
+    if (customer.email) {
+      Company.findById(req.user.companyId).then(comp => {
+        sendCustomerCreatedEmail(customer.email, customer.name, comp?.name)
+          .catch(err => console.error('Failed to send customer created email:', err));
+      }).catch(() => {});
+    }
+
     res.status(201).json(customer);
   } catch (error) {
     console.error(error);

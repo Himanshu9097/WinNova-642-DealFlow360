@@ -3,13 +3,15 @@ const router = express.Router();
 const Invoice = require('../models/Invoice');
 const { requireAuth, requireRole } = require('../../middleware/authMiddleware');
 
+const Deal = require('../models/Deal');
+
 router.use(requireAuth);
 
 router.get('/', async (req, res) => {
   try {
     const invoices = await Invoice.find({ companyId: req.companyId })
       .populate('customerId', 'name email address')
-      .populate('dealId', 'title')
+      .populate('dealId', 'title stage')
       .sort({ createdAt: -1 });
     res.json(invoices);
   } catch (error) {
@@ -51,6 +53,20 @@ router.post('/:id/pay', requireRole(['COMPANY_ADMIN', 'FINANCE']), async (req, r
     
     if (invoice.balanceDue === 0) {
       invoice.status = 'Paid';
+      
+      // Auto-update linked deal to Completed & Paid
+      if (invoice.dealId) {
+        await Deal.findByIdAndUpdate(invoice.dealId, {
+          stage: 'Completed',
+          billingStatus: 'Paid',
+          fulfillmentStatus: 'Completed'
+        });
+      } else if (invoice.customerId) {
+        await Deal.updateMany(
+          { customerId: invoice.customerId, companyId: req.companyId, stage: { $ne: 'Completed' } },
+          { stage: 'Completed', billingStatus: 'Paid' }
+        );
+      }
     } else if (invoice.status === 'Draft') {
       invoice.status = 'Pending';
     }

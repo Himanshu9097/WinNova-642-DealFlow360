@@ -74,7 +74,8 @@ export default function QuotationDetail() {
         </button>
       </div>
 
-      {quote.proposedDiscountPct && (
+      {/* Yellow Counter-Offer Alert Banner (Only if pending counter-offer review) */}
+      {quote.proposedDiscountPct && !['Accepted', 'Approved', 'Completed', 'Ordered', 'Rejected', 'Rejected by Seller'].includes(quote.status) && quote.approvalState !== 'Approved' && (
         <div className="alert alert-warning border-0 shadow-sm mb-4">
           <div className="d-flex justify-content-between align-items-center">
             <div>
@@ -121,7 +122,7 @@ export default function QuotationDetail() {
                   <div className="fs-6"><span className="text-success">{quote.marginPct}%</span> / <span className={`text-${quote.riskScore > 60 ? 'danger' : 'success'}`}>{quote.riskScore}</span></div>
                 </div>
               </div>
-              {quote.approvalState && quote.approvalState !== 'Approved' && (
+              {quote.approvalState && quote.approvalState !== 'Approved' && !['Accepted', 'Approved', 'Completed'].includes(quote.status) && (
                 <div className="mt-2 text-warning small fw-bold">
                   <i className="fa fa-exclamation-triangle me-1"></i> {quote.approvalState}
                 </div>
@@ -129,15 +130,36 @@ export default function QuotationDetail() {
             </div>
             <div className="col-md-3 text-end">
               <div className="d-flex flex-column gap-2">
-                <button 
-                  className="btn btn-primary btn-sm w-100" 
-                  onClick={handleSubmit} 
-                  disabled={submitting || quote.approvalState?.includes('Pending') || quote.approvalState === 'Approved'}
-                >
-                  {submitting ? 'Submitting...' : 'Submit for Approval'}
-                </button>
+                {['Accepted', 'Approved', 'Completed', 'Ordered'].includes(quote.status) || quote.approvalState === 'Approved' ? (
+                  <button className="btn btn-success btn-sm w-100 fw-bold shadow-sm" disabled style={{ backgroundColor: '#10B981', borderColor: '#10B981' }}>
+                    <i className="fa fa-check-circle me-1"></i> Quotation {quote.status === 'Accepted' ? 'Accepted' : 'Approved'}
+                  </button>
+                ) : ['Rejected', 'Rejected by Seller'].includes(quote.status) ? (
+                  <button className="btn btn-secondary btn-sm w-100 fw-bold" disabled>
+                    <i className="fa fa-times-circle me-1"></i> Quotation Rejected
+                  </button>
+                ) : quote.approvalState?.includes('Pending') || quote.status === 'Under Review' || quote.status === 'Pending Approval' ? (
+                  <button className="btn btn-warning text-dark btn-sm w-100 fw-bold" disabled>
+                    <i className="fa fa-clock-o me-1"></i> Pending Approval
+                  </button>
+                ) : (
+                  <button 
+                    className="btn btn-primary btn-sm w-100" 
+                    onClick={handleSubmit} 
+                    disabled={submitting}
+                  >
+                    {submitting ? 'Submitting...' : 'Submit for Approval'}
+                  </button>
+                )}
+
                 <div className="d-flex gap-2">
-                  <button className="btn btn-outline-secondary btn-sm w-50" onClick={() => navigate(`/quotations/${quote._id}/edit`)}>Edit</button>
+                  <button 
+                    className="btn btn-outline-secondary btn-sm w-50" 
+                    onClick={() => navigate(`/quotations/${quote._id}/edit`)}
+                    disabled={['Accepted', 'Approved', 'Completed', 'Ordered'].includes(quote.status)}
+                  >
+                    Edit
+                  </button>
                   <button className="btn btn-outline-secondary btn-sm w-50" onClick={() => navigate(`/quotations/${quote._id}/preview`)}>
                     Preview PDF
                   </button>
